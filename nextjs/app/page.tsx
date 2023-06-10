@@ -14,10 +14,6 @@ export default async function HomePage() {
   return (
     <main>
       <AccountTable>{accounts}</AccountTable>
-      <p>Accounts</p>
-      <p>Accounts</p>
-      <p>Accounts</p>
-      <p>Accounts</p>
     </main>
   );
 }

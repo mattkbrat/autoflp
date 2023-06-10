@@ -7,38 +7,68 @@ import BasicReactTable from '@/components/table/Table';
 import { AccountsWithRelevant } from '@/utils/prisma/accounts';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { Button, ButtonGroup } from '@chakra-ui/react';
+import formatInventory from "@/utils/format/formatInventory";
+
+const deleteAccount = (id: string) => {
+  return fetch(`/api/accounts/${id}`, {
+    method: 'DELETE',
+  })
+}
+
+const AccountTableColumns = () => {
+return useMemo<ColumnDef<AccountsWithRelevant[number]>[]>(
+  () => [
+    {
+      header: 'id',
+      accessorKey: 'id',
+      id: 'id',
+      cell: (info) => (
+        <ButtonGroup>
+          <Button
+            onClick={
+              async () => {
+                const accountID = info.row.original.id
+                const fullName = fullNameFromPerson(info.row.original.person)
+                const invString = formatInventory(info.row.original.deal_deal_accountToaccount[0]?.inventory_deal_inventoryToinventory)
+                const account =  `${fullName} - ${invString}`
+                if (!confirm(`Are you sure you want to delete ${account}`)) return
+                await deleteAccount(accountID)
+              }
+            }
+          >
+            Delete
+          </Button>
+          <Button>
+            Record Payment
+          </Button>
+        </ButtonGroup>
+      ),
+    },
+    {
+      header: 'contact',
+      accessorFn: (row) => fullNameFromPerson(row.person) ?? '',
+      id: 'contact',
+    },
+    {
+      header: 'license_number',
+      accessorFn: (row) => row.license_number ?? '',
+      id: 'license_number',
+    },
+    {
+      header: 'inventory',
+      accessorFn: (row) => formatInventory(row.deal_deal_accountToaccount[0]?.inventory_deal_inventoryToinventory) ?? '',
+      id: 'inventory',
+    }
+  ],
+  [],
+);
+}
 
 export default async function AccountTable({
   children,
 }: {
   children: AccountsWithRelevant[number][];
 }) {
-  const columns = useMemo<ColumnDef<AccountsWithRelevant[number]>[]>(
-    () => [
-      {
-        header: 'id',
-        accessorKey: 'id',
-        id: 'id',
-        cell: (info) => (
-          <ButtonGroup>
-            <Button>{info.row.getValue('contact')}</Button>
-            <Button>{info.row.getValue('license_number')}</Button>
-          </ButtonGroup>
-        ),
-      },
-      {
-        header: 'contact',
-        accessorFn: (row) => fullNameFromPerson(row.person) ?? '',
-        id: 'contact',
-      },
-      {
-        header: 'license_number',
-        accessorFn: (row) => row.license_number ?? '',
-        id: 'license_number',
-      },
-    ],
-    [],
-  );
 
-  return <BasicReactTable data={children} columns={columns} heading={'Accounts'} />;
+  return <BasicReactTable refresh={() => {}} data={children} columns={AccountTableColumns()} heading={'Accounts'} />;
 }

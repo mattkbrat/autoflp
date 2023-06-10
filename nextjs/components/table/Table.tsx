@@ -11,14 +11,17 @@ import {
   FaSortAlphaUp,
 } from 'react-icons/fa';
 
+import { DebouncedInput } from '@/components/DebouncedInput';
 import { Filter } from '@/components/table/Filter';
 import {
   Button,
   ButtonGroup,
   Table as ChakraTable,
+  Checkbox,
   Flex,
   Heading,
   HStack,
+  Icon,
   InputGroup,
   InputLeftAddon,
   Select,
@@ -31,7 +34,6 @@ import {
   Th,
   Thead,
   Tr,
-  Icon,
 } from '@chakra-ui/react';
 import { RankingInfo, rankItem } from '@tanstack/match-sorter-utils';
 import {
@@ -48,7 +50,6 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { DebouncedInput } from '@/components/DebouncedInput';
 
 declare module '@tanstack/table-core' {
   interface FilterFns {
@@ -80,16 +81,21 @@ const fuzzyFilter: FilterFn<any> = (row, columnId, value, addMeta) => {
 function BasicReactTable(props: {
   data: any;
   resultsType?: string;
-  refresh?: () => void;
+  refresh: () => void;
   columns: ColumnDef<any>[];
   createForm?: JSX.Element;
   heading: string | JSX.Element;
+  checkAll?: (e: any) => void;
+  isChecked?: boolean;
+  isIndeterminate?: boolean;
 }) {
   const rerender = React.useReducer(() => ({}), {})[1];
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
 
   const [globalFilter, setGlobalFilter] = React.useState('');
+
+  const refreshData = props.refresh;
 
   const table = useReactTable({
     data: props.data,
@@ -123,9 +129,7 @@ function BasicReactTable(props: {
       {props.createForm && props.createForm}
       <InputGroup>
         <InputLeftAddon pointerEvents="none">
-          <Icon color="gray.300">
-            <FaSearch />
-          </Icon>
+          <Icon as={FaSearch} color="gray.300" />
         </InputLeftAddon>
         <DebouncedInput
           value={globalFilter ?? ''}
@@ -166,7 +170,15 @@ function BasicReactTable(props: {
                           }
                         </Flex>
                         {header.column.getCanFilter() ? (
-                          <Filter column={header.column} table={table} />
+                          header.column.id === 'id' ? (
+                            <Checkbox
+                              isChecked={props.isChecked || false}
+                              isIndeterminate={props.isIndeterminate || false}
+                              onChange={props.checkAll}
+                            />
+                          ) : (
+                            <Filter column={header.column} table={table} />
+                          )
                         ) : null}
                       </>
                     )}
@@ -278,9 +290,9 @@ function BasicReactTable(props: {
         </Text>
         <ButtonGroup>
           {' '}
-          {/*<Button m={0} p={0} onClick={() => refreshData()} variant="ghost">*/}
-          {/*  Refresh Data*/}
-          {/*</Button>*/}
+          <Button m={0} p={0} onClick={() => refreshData()} variant="ghost">
+            Refresh Data
+          </Button>
         </ButtonGroup>{' '}
       </HStack>{' '}
     </Stack>
