@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model account {
+  id                         String  @id
+  contact                    String  @unique
+  cosigner                   String?
+  date_of_birth              String?
+  license_number             String  @unique
+  license_expiration         String?
+  date_added                 String? @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_modified              String? @default(dbgenerated("CURRENT_TIMESTAMP"))
+  current_standing           String?
+  notes                      String?
+  person                     person  @relation(fields: [contact], references: [id], onDelete: Cascade)
+  deal_deal_accountToaccount deal[]  @relation("deal_accountToaccount")
+
+  @@unique([contact, cosigner], map: "unique_primary_secondary")
+}
+
+model charge {
+  id                                           String           @id
+  name                                         String
+  amount                                       String
+  date_effective                               String
+  deal_charge_deal_charge_chargeTocharge       deal_charge[]    @relation("deal_charge_chargeTocharge")
+  default_charge_default_charge_chargeTocharge default_charge[] @relation("default_charge_chargeTocharge")
+
+  @@unique([name, amount])
+}
+
+model city {
+  id           String @id
+  city         String
+  state        String
+  zip          String
+  abbreviation String
+
+  @@unique([city, state], map: "unique_city_state")
+  @@index([state(sort: Desc)], map: "i_city_state")
+}
+
+model creditor {
+  id                                               String           @id
+  business_name                                    String           @unique
+  contact                                          String
+  filing_fees                                      String
+  date_added                                       String?          @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_modified                                    String?          @default(dbgenerated("CURRENT_TIMESTAMP"))
+  apr                                              String           @default("10")
+  person                                           person           @relation(fields: [contact], references: [id], onDelete: Cascade)
+  deal_deal_creditorTocreditor                     deal[]           @relation("deal_creditorTocreditor")
+  default_charge_default_charge_creditorTocreditor default_charge[] @relation("default_charge_creditorTocreditor")
+
+  @@unique([business_name, contact], map: "unique_business_contact")
+}
+
+model deal {
+  id                                     String          @id
+  state                                  Int             @default(1)
+  date                                   String
+  account                                String
+  inventory                              String
+  creditor                               String?
+  cash                                   String
+  down                                   String?         @default(dbgenerated("0"))
+  apr                                    String
+  finance                                String?
+  lien                                   String?
+  pmt                                    String?
+  term                                   String
+  tax_city                               String?
+  tax_state                              String?
+  tax_county                             String?
+  tax_rtd                                String?
+  account_deal_accountToaccount          account         @relation("deal_accountToaccount", fields: [account], references: [id], onDelete: Cascade)
+  creditor_deal_creditorTocreditor       creditor?       @relation("deal_creditorTocreditor", fields: [creditor], references: [id], onDelete: Cascade, onUpdate: SetNull)
+  inventory_deal_inventoryToinventory    inventory       @relation("deal_inventoryToinventory", fields: [inventory], references: [vin], onDelete: Cascade)
+  deal_charge_deal_charge_dealTodeal     deal_charge[]   @relation("deal_charge_dealTodeal")
+  deal_salesman_deal_salesman_dealTodeal deal_salesman[] @relation("deal_salesman_dealTodeal")
+  deal_trade_deal_trade_dealTodeal       deal_trade[]    @relation("deal_trade_dealTodeal")
+  payment_payment_dealTodeal             payment[]       @relation("payment_dealTodeal")
+
+  @@unique([date, account, inventory], map: "date_account_inventory")
+}
+
+model deal_charge {
+  deal                              String?
+  charge                            String?
+  date                              String?
+  note                              String?
+  id                                String  @id
+  charge_deal_charge_chargeTocharge charge? @relation("deal_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
+  deal_deal_charge_dealTodeal       deal?   @relation("deal_charge_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
+}
+
+model deal_salesman {
+  id                                        String   @id
+  deal                                      String
+  salesman                                  String
+  deal_deal_salesman_dealTodeal             deal     @relation("deal_salesman_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
+  salesman_deal_salesman_salesmanTosalesman salesman @relation("deal_salesman_salesmanTosalesman", fields: [salesman], references: [person], onDelete: Cascade)
+
+  @@unique([deal, salesman])
+}
+
+model deal_trade {
+  id                         String    @id
+  deal                       String
+  vin                        String
+  value                      String
+  deal_deal_trade_dealTodeal deal      @relation("deal_trade_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
+  inventory                  inventory @relation(fields: [vin], references: [vin], onDelete: Cascade)
+
+  @@unique([deal, vin])
+}
+
+model default_charge {
+  id                                         String   @id
+  creditor                                   String
+  charge                                     String
+  charge_default_charge_chargeTocharge       charge   @relation("default_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
+  creditor_default_charge_creditorTocreditor creditor @relation("default_charge_creditorTocreditor", fields: [creditor], references: [business_name], onDelete: Cascade)
+
+  @@unique([creditor, charge])
+}
+
+model inventory {
+  id                             String       @id
+  vin                            String       @unique
+  year                           String
+  make                           String
+  model                          String?
+  body                           String?
+  color                          String?
+  fuel                           String?
+  cwt                            String?
+  mileage                        String?
+  date_added                     String?      @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_modified                  String?      @default(dbgenerated("CURRENT_TIMESTAMP"))
+  picture                        String?
+  cash                           String?
+  credit                         String?
+  down                           String?
+  state                          Int          @default(1)
+  deal_deal_inventoryToinventory deal[]       @relation("deal_inventoryToinventory")
+  deal_trade                     deal_trade[]
+}
+
+model payment {
+  id                      String @id
+  deal                    String
+  date                    String @default(dbgenerated("CURRENT_TIMESTAMP"))
+  amount                  String
+  deal_payment_dealTodeal deal   @relation("payment_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
+
+  @@unique([deal, date, amount])
+}
+
+model person {
+  id                               String     @id
+  name_prefix                      String?
+  first_name                       String
+  middle_initial                   String?
+  last_name                        String
+  name_suffix                      String?
+  address_1                        String
+  address_2                        String?
+  address_3                        String?
+  city                             String     @default("Fort Morgan")
+  state_province                   String     @default("CO")
+  zip_postal                       String     @default(dbgenerated("80701"))
+  zip_4                            String?
+  country                          String     @default("US")
+  phone_primary                    String
+  phone_secondary                  String?
+  phone_tertiary                   String?
+  email_primary                    String?
+  email_secondary                  String?
+  account                          account?
+  creditor                         creditor[]
+  salesman_salesman_personToperson salesman?  @relation("salesman_personToperson")
+
+  @@unique([last_name, first_name, address_1], map: "last_first_address")
+}
+
+model salesman {
+  id                                             String          @id
+  person                                         String          @unique
+  deal_salesman_deal_salesman_salesmanTosalesman deal_salesman[] @relation("deal_salesman_salesmanTosalesman")
+  person_salesman_personToperson                 person          @relation("salesman_personToperson", fields: [person], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model sqlite_master {
+  type     String?
+  name     String?
+  tbl_name String?
+  rootpage Int?
+  sql      String?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model sqlite_sequence {
+  name BigInt?
+  seq  BigInt?
+
+  @@ignore
+}
