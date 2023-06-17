@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { GiHamburgerMenu } from 'react-icons/gi';
 
+import Image from 'next/image';
 import Link from 'next/link';
 
-// import useSWR from 'swr';
+import useSWR from 'swr';
 
 import ToggleColorModeButton from '@/components/ToggleColorModeButton';
 import useIsMobile from '@/hooks/useIsMobile';
-// import signOut from '@/utils/fetchers/signOut';
+import signOut from '@/utils/fetchers/signOut';
 import {
   Box,
   Button,
@@ -19,6 +20,7 @@ import {
   DrawerCloseButton,
   DrawerContent,
   DrawerOverlay,
+  Flex,
   IconButton,
   ListItem,
   Menu,
@@ -27,12 +29,14 @@ import {
   MenuGroup,
   MenuItem,
   MenuList,
+  Skeleton,
   Text,
   UnorderedList,
   useColorModeValue,
 } from '@chakra-ui/react';
 
-// const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const logoSrc = '/images/logo.png';
 
 const ProfileMenu = ({ username }: { username: string }) => {
   return (
@@ -49,13 +53,13 @@ const ProfileMenu = ({ username }: { username: string }) => {
           </Link>
         </MenuGroup>
         <MenuDivider />
-        {/*<MenuItem*/}
-        {/*  onClick={async () => {*/}
-        {/*    await signOut({});*/}
-        {/*  }}*/}
-        {/*>*/}
-        {/*  Sign Out*/}
-        {/*</MenuItem>*/}
+        <MenuItem
+          onClick={async () => {
+            await signOut({});
+          }}
+        >
+          Sign Out
+        </MenuItem>
         {/*<MenuDivider />*/}
         {/*<MenuGroup title="Help">*/}
         {/*  <MenuItem>Docs</MenuItem>*/}
@@ -68,16 +72,16 @@ const ProfileMenu = ({ username }: { username: string }) => {
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [collapseNav, setCollapseNav] = useState(true);
 
-  // const { data: user } = useSWR('/api/user/session', fetcher, {
-  //   refreshInterval: 1000 * 60, // 1 minute
-  // });
+  const { data: user, isLoading } = useSWR('/api/auth/session', fetcher, {
+    refreshInterval: 1000 * 60, // 1 minute
+  });
 
-  const user = {
-    username: 'Admin',
-    role: 'admin',
-  };
+  useEffect(() => {
+    setHasInitialLoad(!!user);
+  }, [user]);
 
   const isMobile = useIsMobile();
 
@@ -107,9 +111,13 @@ export default function Header() {
 
   const bg = useColorModeValue('rgba(255,255,255,0.7)', 'rgba(0,0,0,0.7)');
 
-  // if (!user) {
-  //   return null;
-  // }
+  if (!user) {
+    return (
+      <Box py={4} px={2}>
+        <Image width={80} height={20} src={logoSrc} alt={'Auto FLP'} />
+      </Box>
+    );
+  }
 
   const Nav = () => {
     return (
@@ -130,17 +138,17 @@ export default function Header() {
             <DrawerCloseButton />
           </ListItem>
         )}
-        <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
-          <Link
-            style={{
-              display: 'inline-block',
-              width: '100%',
-            }}
-            href={'/'}
-          >
-            Home
-          </Link>
-        </ListItem>
+        {/*<ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>*/}
+        {/*  <Link*/}
+        {/*    style={{*/}
+        {/*      display: 'inline-block',*/}
+        {/*      width: '100%',*/}
+        {/*    }}*/}
+        {/*    href={'/'}*/}
+        {/*  >*/}
+        {/*    Home*/}
+        {/*  </Link>*/}
+        {/*</ListItem>*/}
         <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
           <Link
             style={{
@@ -164,7 +172,7 @@ export default function Header() {
             Contact
           </Link>
         </ListItem>
-        {user.role?.toLowerCase() === 'admin' && (
+        {user?.role?.toLowerCase() === 'admin' && (
           <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
             <Link
               style={{
@@ -187,7 +195,7 @@ export default function Header() {
               textTransform={'uppercase'}
               color={'gray.500'}
             >
-              {user.username}
+              {user?.username}
             </Text>
             <ListItem w={'full'}>
               <Link
@@ -200,67 +208,88 @@ export default function Header() {
                 Profile
               </Link>
             </ListItem>
-            {/*<ListItem*/}
-            {/*  _hover={{ cursor: 'pointer' }}*/}
-            {/*  w={'full'}*/}
-            {/*  display={!collapseNav ? 'block' : 'none'}*/}
-            {/*  onClick={async () => {*/}
-            {/*    await signOut({});*/}
-            {/*  }}*/}
-            {/*>*/}
-            {/*  Sign Out*/}
-            {/*</ListItem>*/}
+
+            <ListItem
+              _hover={{ cursor: 'pointer' }}
+              w={'full'}
+              display={!collapseNav ? 'block' : 'none'}
+              onClick={async () => {
+                await signOut({});
+              }}
+            >
+              Sign Out
+            </ListItem>
           </>
         )}
       </UnorderedList>
     );
   };
 
-  return isMobile ? (
-    <>
-      <IconButton
-        position={'fixed'}
-        top={4}
-        right={4}
-        zIndex={2}
-        size={'sm'}
-        bg={bg}
-        aria-label={'expand nav'}
-        onClick={() => setCollapseNav(!collapseNav)}
-        as={GiHamburgerMenu}
-      />
-      <Drawer
-        id={'mobile-nav-drawer'}
-        isOpen={!collapseNav}
-        onClose={() => setCollapseNav(!collapseNav)}
-        placement={'right'}
-      >
-        <DrawerOverlay />
-        <DrawerContent h={'min-content'} w={'min-content'}>
-          <DrawerBody position={'absolute'} top={0} right={0} zIndex={1} bg={bg}>
-            <Nav />
-          </DrawerBody>
-        </DrawerContent>
-      </Drawer>
-    </>
-  ) : (
-    <Box
-      as={'header'}
+  return (
+    <Skeleton
       position={'sticky'}
       bg={scrolled ? bg : undefined}
-      // color={scrolled && !isMobile ? 'black' : undefined}
       transition={'background-color 0.2s ease-in-out'}
       top={0}
       zIndex={1}
-      fontSize={'lg'}
-      justifyContent={'space-between'}
-      display={'flex'}
-      alignItems={'center'}
-      padding={4}
+      isLoaded={hasInitialLoad}
     >
-      <ToggleColorModeButton />
-      <Nav />
-      <ProfileMenu username={user.username} />
-    </Box>
+      <Box
+        as={'header'}
+        bg={scrolled ? bg : undefined}
+        fontSize={'lg'}
+        justifyContent={'space-between'}
+        display={'flex'}
+        alignItems={'center'}
+        py={4}
+        px={2}
+      >
+        <Flex>
+          <Link href={'/'} passHref>
+            <Image width={80} height={20} src={logoSrc} alt={'Auto FLP'} />
+          </Link>
+          <ToggleColorModeButton />
+        </Flex>
+        {isMobile ? (
+          <>
+            <IconButton
+              position={'fixed'}
+              top={4}
+              right={4}
+              zIndex={2}
+              size={'sm'}
+              bg={bg}
+              aria-label={'expand nav'}
+              onClick={() => setCollapseNav(!collapseNav)}
+              as={GiHamburgerMenu}
+            />
+            <Drawer
+              id={'mobile-nav-drawer'}
+              isOpen={!collapseNav}
+              onClose={() => setCollapseNav(!collapseNav)}
+              placement={'right'}
+            >
+              <DrawerOverlay />
+              <DrawerContent h={'min-content'} w={'min-content'}>
+                <DrawerBody
+                  position={'absolute'}
+                  top={0}
+                  right={0}
+                  zIndex={1}
+                  bg={bg}
+                >
+                  <Nav />
+                </DrawerBody>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
+          <>
+            <Nav />
+            <ProfileMenu username={user?.username} />
+          </>
+        )}
+      </Box>
+    </Skeleton>
   );
 }

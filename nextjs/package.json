@@ -26,11 +26,15 @@
     "eslint": "8.42.0",
     "eslint-config-next": "13.4.4",
     "framer-motion": "^10.12.16",
+    "iron-session": "^6.3.1",
     "next": "13.4.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-icons": "^4.9.0",
-    "typescript": "5.1.3"
+    "swr": "^2.1.5",
+    "typescript": "5.1.3",
+    "winston": "^3.9.0",
+    "winston-transport": "^4.5.0"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.0.2",
