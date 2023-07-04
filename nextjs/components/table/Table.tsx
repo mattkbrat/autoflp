@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   FaAngleDoubleLeft,
   FaAngleDoubleRight,
@@ -122,6 +122,10 @@ function BasicReactTable(props: {
     debugHeaders: false,
     debugColumns: false,
   });
+
+  useEffect(() => {
+    table.setPageSize(25);
+  }, []);
 
   return (
     <Stack padding={2} spacing={4}>

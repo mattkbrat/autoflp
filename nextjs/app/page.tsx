@@ -17,7 +17,6 @@ export default async function HomePage() {
   }
 
   const accounts = await getAllWithRelevant();
-  console.info('home');
 
   return (
     <main>

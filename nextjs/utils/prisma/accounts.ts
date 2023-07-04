@@ -4,7 +4,9 @@ export default async function getAll() {
   return prisma.account.findMany({});
 }
 
-export async function getAllWithRelevant() {
+export async function getAllWithRelevant(status?: string) {
+  const state = status ? (status === 'active' ? 1 : 0) : undefined;
+
   return prisma.account.findMany({
     include: {
       person: true,
@@ -14,6 +16,22 @@ export async function getAllWithRelevant() {
           inventory_deal_inventoryToinventory: true,
           deal_salesman_deal_salesman_dealTodeal: true,
         },
+        orderBy: {
+          date: 'desc',
+        },
+        take: 1,
+      },
+    },
+    where: {
+      deal_deal_accountToaccount: {
+        some: {
+          state: state,
+        },
+      },
+    },
+    orderBy: {
+      person: {
+        last_name: 'desc',
       },
     },
   });

@@ -1,46 +1,30 @@
 'use client';
 
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { account } from '@prisma/client';
 import BasicReactTable from '@/components/table/Table';
 import { AccountsWithRelevant } from '@/utils/prisma/accounts';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
-import { Button, ButtonGroup } from '@chakra-ui/react';
+import { Button, ButtonGroup, Divider, Heading, Stack } from '@chakra-ui/react';
 import formatInventory from '@/utils/format/formatInventory';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import formatPhoneNumber from '@/utils/format/formatPhoneNumber';
 
-const deleteAccount = (id: string) => {
-  return fetch(`/api/accounts/${id}`, {
-    method: 'DELETE',
-  });
-};
+async function AccountTable({ data }: { data: AccountsWithRelevant[number][] }) {
+  const router = useRouter();
 
-const AccountTableColumns = () => {
-  return useMemo<ColumnDef<AccountsWithRelevant[number]>[]>(
+  const AccountTableColumns = useMemo<ColumnDef<AccountsWithRelevant[number]>[]>(
     () => [
       {
         header: 'id',
         accessorKey: 'id',
         id: 'id',
         cell: (info) => (
-          <ButtonGroup>
-            <Button
-              onClick={async () => {
-                const accountID = info.row.original.id;
-                const fullName = fullNameFromPerson(info.row.original.person);
-                const invString = formatInventory(
-                  info.row.original.deal_deal_accountToaccount[0]
-                    ?.inventory_deal_inventoryToinventory,
-                );
-                const account = `${fullName} - ${invString}`;
-                if (!confirm(`Are you sure you want to delete ${account}`)) return;
-                await deleteAccount(accountID);
-              }}
-            >
-              Delete
-            </Button>
-            <Button>Record Payment</Button>
-          </ButtonGroup>
+          <Link href={`/accounts/${info.row.original.id}`} passHref>
+            <Button variant={'link'}>Manage</Button>
+          </Link>
         ),
       },
       {
@@ -49,12 +33,17 @@ const AccountTableColumns = () => {
         id: 'contact',
       },
       {
-        header: 'license_number',
+        header: 'primary phone',
+        accessorFn: (row) => formatPhoneNumber(row.person.phone_primary || ''),
+        id: 'phone',
+      },
+      {
+        header: 'license number',
         accessorFn: (row) => row.license_number ?? '',
         id: 'license_number',
       },
       {
-        header: 'inventory',
+        header: 'Latest inventory',
         accessorFn: (row) =>
           formatInventory(
             row.deal_deal_accountToaccount[0]?.inventory_deal_inventoryToinventory,
@@ -64,19 +53,34 @@ const AccountTableColumns = () => {
     ],
     [],
   );
-};
 
-export default async function AccountTable({
-  data,
-}: {
-  data: AccountsWithRelevant[number][];
-}) {
   return (
-    <BasicReactTable
-      refresh={() => {}}
-      data={data}
-      columns={AccountTableColumns()}
-      heading={'Accounts'}
-    />
+    <Stack>
+      <ButtonGroup alignSelf={'center'}>
+        <Link href={'/deals/complete'} passHref>
+          <Button variant={'link'}>Complete Deals</Button>
+        </Link>
+        <Divider orientation={'vertical'} />
+        <Link href={'/deals/active'} passHref>
+          <Button variant={'link'}>Active Deals</Button>
+        </Link>
+        <Divider orientation={'vertical'} />
+
+        <Link href={'/deals'} passHref>
+          <Button variant={'link'}>All Accounts</Button>
+        </Link>
+      </ButtonGroup>
+
+      <BasicReactTable
+        refresh={() => {}}
+        data={data}
+        columns={AccountTableColumns}
+        heading={'Accounts'}
+      />
+    </Stack>
   );
 }
+
+export default memo(AccountTable, (prev, next) => {
+  return prev.data === next.data;
+});
