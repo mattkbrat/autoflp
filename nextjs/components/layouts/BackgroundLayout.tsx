@@ -1,39 +1,56 @@
 'use client';
 
+import style from '@/styles/Gradients.module.css';
+
 import {
   Box,
   Flex,
+  Heading,
   IconButton,
   Link,
   Stack,
+  StackProps,
   Text,
   Tooltip,
   useColorModeValue,
 } from '@chakra-ui/react';
 import useBackground from '@/hooks/useBackground';
 import { BiRefresh } from 'react-icons/bi';
+import { useMemo } from 'react';
+import Image from 'next/image';
 
 export default function BackgroundLayout({
   children,
   backgroundImage,
+  heading,
+  headingProps,
+  withGradient,
+  ...stackProps
 }: {
   children: React.ReactNode;
+  heading?: string;
+  headingProps?: StackProps;
+  withGradient?: boolean;
   backgroundImage?: string;
-}) {
+} & StackProps) {
   const bg = useColorModeValue('whiteAlpha.800', 'blackAlpha.800'); // Less transparent on mobile
 
   const { background, deleteBackground } = useBackground({
-    query: backgroundImage || 'old truck',
+    query: !withGradient ? null : backgroundImage || 'pickup truck',
   });
+
+  const imageHeight = useMemo(() => {
+    if (!background?.image) return '100vh';
+    const height = background.image.height;
+    if (height > 1000) return '100vh';
+    return `${height}px`;
+  }, [background?.image]);
+
+  const colorScheme = useColorModeValue('light', 'dark');
 
   return (
     <Flex
-      backgroundImage={`url(${background?.image.direct})`}
-      backgroundPosition="center"
-      backgroundRepeat="no-repeat"
-      backgroundSize="cover"
-      backdropFilter={'blur(20px)'}
-      w={'100vw'}
+      w={'full'}
       minH="88vh"
       position={'relative'}
       p={{
@@ -44,11 +61,8 @@ export default function BackgroundLayout({
       alignItems={'center'}
     >
       <Stack
-        background={bg}
         justifyContent={'center'}
-        backdropBlur={'lg'}
-        backdropFilter={'blur(2px)'}
-        borderRadius={'xl'}
+        background={bg}
         m={{
           base: 0,
           md: 2,
@@ -59,10 +73,52 @@ export default function BackgroundLayout({
           md: 2,
           lg: 10,
         }}
+        {...stackProps}
       >
+        {heading && <Heading {...headingProps}>{heading}</Heading>}
+        {background.image.height && (
+          <Box
+            position={'absolute'}
+            top={0}
+            left={0}
+            zIndex={-1}
+            w={'100%'}
+            h={'full'}
+          >
+            {withGradient ? (
+              <Box
+                className={style[colorScheme]}
+                position={'absolute'}
+                top={0}
+                left={0}
+                zIndex={-1}
+                w={'100%'}
+                h={'full'}
+              />
+            ) : (
+              <Image
+                src={background?.image.direct}
+                alt="Background"
+                width={background.image.width}
+                height={background.image.height}
+                layout={'responsive'}
+                objectFit={'cover'}
+                objectPosition={'center'}
+                quality={100}
+                priority={true}
+                placeholder={'blur'}
+                blurDataURL={background?.image.direct}
+                style={{
+                  borderRadius: '1rem',
+                  filter: 'blur(5px)',
+                }}
+              />
+            )}
+          </Box>
+        )}
         {children}
       </Stack>
-      <Box position={'absolute'} bottom={2} right={2}>
+      <Box position={'absolute'} top={2} right={2}>
         <Box
           background={bg}
           backdropBlur={'lg'}

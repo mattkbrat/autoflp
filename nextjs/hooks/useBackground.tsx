@@ -6,6 +6,8 @@ type Background = {
   image: {
     unsplash: string;
     direct: string;
+    height: number;
+    width: number;
   };
   attribution: {
     name: string;
@@ -13,11 +15,23 @@ type Background = {
   };
 };
 
-export default function useBackground({ query }: { query?: string }) {
+/**
+ * Fetches a background image from Unsplash and stores it in session storage
+ * @param query The query to search for
+ */
+export default function useBackground({ query }: { query?: string | null }): {
+  background: Background;
+  deleteBackground: () => void;
+} {
   const [background, setBackground] = useState<Background | null>(() => {
-    const image = sessionStorage.getItem('background-image-' + query);
+    if (query === null) return null;
+    const image =
+      typeof sessionStorage !== 'undefined' &&
+      sessionStorage.getItem('background-image-' + query);
     if (!image) return null;
-    return image.startsWith('{') ? (JSON.parse(image) as Background) : null;
+    const parsed = JSON.parse(image);
+    if (parsed instanceof Object) return JSON.parse(image);
+    return null;
   });
 
   const deleteBackground = () => {
@@ -27,13 +41,16 @@ export default function useBackground({ query }: { query?: string }) {
 
   useEffect(() => {
     if (background) return;
+    if (query === null) return;
     fetch('/api/unsplash/?query=' + query)
       .then((res) => res.json())
       .then((json) => {
-        const bg = {
+        const bg: Background = {
           image: {
             direct: json.urls.regular || (json.urls.full as string),
             unsplash: json.links.html as string,
+            height: json.height,
+            width: json.width,
           },
           attribution: {
             name: json.user.name as string,
@@ -54,6 +71,8 @@ export default function useBackground({ query }: { query?: string }) {
         image: {
           unsplash: '',
           direct: '',
+          height: 0,
+          width: 0,
         },
         attribution: {
           name: '',
