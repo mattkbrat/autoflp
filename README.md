@@ -1,2 +1,3 @@
 # autoflp
-Full stack auto dealer app built using nuxt
+
+Full stack auto dealer app built using nextjs13
