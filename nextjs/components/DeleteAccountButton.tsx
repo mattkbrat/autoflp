@@ -29,8 +29,7 @@ const DeleteAccountButton = ({
         const accountID = info.row.original.id;
         const fullName = fullNameFromPerson(info.row.original.person);
         const invString = formatInventory(
-          info.row.original.deal_deal_accountToaccount[0]
-            ?.inventory_deal_inventoryToinventory,
+          info.row.original.deal_deal_accountToaccount[0]?.inventory,
         );
         const account = `${fullName} - ${invString}`;
         if (!confirm(`Are you sure you want to delete ${account}`)) return;

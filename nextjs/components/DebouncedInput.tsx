@@ -1,19 +1,21 @@
 // A debounced input react component
-import { InputHTMLAttributes, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-import { Input } from '@chakra-ui/react';
+import { Input, InputProps } from '@chakra-ui/react';
 
-export function DebouncedInput({
+type InputValue = InputProps['value'];
+
+export function DebouncedInput<Input extends InputValue>({
   value: initialValue,
   onChange,
   debounce = 500,
   ...props
 }: {
-  value: string | number;
-  onChange: (value: string | number) => void;
+  value: Input;
+  onChange: (value: InputValue) => void;
   debounce?: number;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'>) {
-  const [value, setValue] = useState(initialValue);
+} & Omit<InputProps, 'onChange'>) {
+  const [value, setValue] = useState<InputProps['value']>(initialValue);
 
   useEffect(() => {
     setValue(initialValue);
@@ -28,7 +30,6 @@ export function DebouncedInput({
   }, [value]);
 
   return (
-    // @ts-ignore
     <Input
       {...props}
       value={value}

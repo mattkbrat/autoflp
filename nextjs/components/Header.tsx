@@ -34,6 +34,7 @@ import {
   UnorderedList,
   useColorModeValue,
 } from '@chakra-ui/react';
+import GlobalSearch, { SearchOption } from '@/app/GlobalSearch';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const logoSrc = '/images/logo.png';
@@ -70,7 +71,11 @@ const ProfileMenu = ({ username }: { username: string }) => {
   );
 };
 
-export default function Header() {
+export default function Header({
+  searchOptions,
+}: {
+  searchOptions: SearchOption[];
+}) {
   const [scrolled, setScrolled] = useState(false);
   const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [collapseNav, setCollapseNav] = useState(true);
@@ -286,6 +291,7 @@ export default function Header() {
         ) : (
           <>
             <Nav />
+            <GlobalSearch searchOptions={searchOptions} />
             <ProfileMenu username={user?.username} />
           </>
         )}

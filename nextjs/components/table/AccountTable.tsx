@@ -45,9 +45,7 @@ async function AccountTable({ data }: { data: AccountsWithRelevant[number][] }) 
       {
         header: 'Latest inventory',
         accessorFn: (row) =>
-          formatInventory(
-            row.deal_deal_accountToaccount[0]?.inventory_deal_inventoryToinventory,
-          ) ?? '',
+          formatInventory(row.deal_deal_accountToaccount[0]?.inventory) ?? '',
         id: 'inventory',
       },
     ],

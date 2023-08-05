@@ -1,25 +1,24 @@
+import { Inter } from 'next/font/google';
+import AccountTable from '@/components/table/AccountTable';
 import { getRequestCookie } from '@/utils/auth/getRequestCookie';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { getAllWithRelevant } from '@/utils/prisma/accounts';
-import { stat } from 'fs';
+import { getAllAccountsWithRelevantByOptionalStatus } from '@/utils/prisma/account';
 
-import dynamic from 'next/dynamic';
+const inter = Inter({ subsets: ['latin'] });
 
-const AccountTable = dynamic(() => import('@/components/table/AccountTable'), {
-  ssr: false,
-});
-
-const DealsPage = async () => {
+export default async function HomePage() {
   const user = await getRequestCookie(cookies());
 
   if (!user) {
     redirect('/auth/login');
   }
 
-  const accounts = await getAllWithRelevant();
+  const accounts = await getAllAccountsWithRelevantByOptionalStatus({});
 
-  return <AccountTable data={accounts} />;
-};
-
-export default DealsPage;
+  return (
+    <main>
+      <AccountTable data={accounts} />
+    </main>
+  );
+}

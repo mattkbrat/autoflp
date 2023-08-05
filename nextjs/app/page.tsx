@@ -1,26 +1,8 @@
-import Image from 'next/image';
-import { Inter } from 'next/font/google';
-import styles from './page.module.css';
-import getAll, { getAllWithRelevant } from '@/utils/prisma/accounts';
-import AccountTable from '@/components/table/AccountTable';
-import { getRequestCookie } from '@/utils/auth/getRequestCookie';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
+import formatInventory from '@/utils/format/formatInventory';
 
-const inter = Inter({ subsets: ['latin'] });
+const Page = async () => {
+  return <div> Home </div>;
+};
 
-export default async function HomePage() {
-  const user = await getRequestCookie(cookies());
-
-  if (!user) {
-    redirect('/auth/login');
-  }
-
-  const accounts = await getAllWithRelevant();
-
-  return (
-    <main>
-      <AccountTable data={accounts} />
-    </main>
-  );
-}
+export default Page;
