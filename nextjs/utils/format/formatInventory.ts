@@ -1,23 +1,45 @@
-import { Inventory } from "@/utils/prisma/inventory";
+import { Inventory } from '@/types/prisma/inventory';
 
 export default function formatInventory(
-  inventory: Inventory[number] | undefined,
+  inventory: NonNullable<Inventory> | undefined,
   titleCase = true,
 ) {
   if (inventory === undefined) {
     return '';
   }
 
-  const inv = `${inventory.color || ''} ${inventory.year.split('.')[0]} ${inventory.make} ${
-    inventory.model
-  } ${inventory.vin.slice(-4)}`;
+  let { make, year, color, vin } = inventory;
+
+  if (!make || make.toLowerCase() === 'none') {
+    make = '';
+  }
+
+  if (!year || year.toLowerCase() === 'none') {
+    year = '';
+  } else {
+    year = year.split('.')[0].slice(-2);
+  }
+
+  if (!color || color.toLowerCase() === 'none') {
+    color = '';
+  }
+
+  vin = vin.slice(-4);
+
+  const inv = `${color} '${year} ${make} ${vin}`.trim();
 
   if (titleCase) {
     return inv
+      .trim()
       .split(' ')
-      .map((word) => word && word[0].toUpperCase() + word.slice(1))
+      .map((word) => {
+        if (word.length === 0) {
+          return '';
+        }
+        return word[0].toUpperCase() + word.slice(1);
+      })
       .join(' ');
   }
 
-  return inv;
+  return `${color} ${year} ${make} ${vin}`.trim();
 }

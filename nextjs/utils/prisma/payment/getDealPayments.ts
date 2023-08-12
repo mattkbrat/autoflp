@@ -18,12 +18,10 @@ const accountPersonSelect = {
       select: {
         first_name: true,
         last_name: true,
-      }
-    }    
-  }
+      },
+    },
+  },
 };
-
-
 
 const getDealPayments = async ({ deal }: { deal: Deal['id'] }) => {
   return prisma.deal.findFirst({
@@ -45,11 +43,11 @@ const getDealPayments = async ({ deal }: { deal: Deal['id'] }) => {
       payments: defaultPaymentsSelect,
       dealTrades: {
         select: {
-          inventory: inventorySelect
+          inventory: inventorySelect,
         },
       },
       inventory: inventorySelect,
-      accounts: accountPersonSelect,
+      Account: accountPersonSelect,
     },
   });
 };

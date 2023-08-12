@@ -12,3 +12,5 @@ export type AccountsWithRelevant = AccountWithRelevant[];
 export type AccountsWithRelevantByStatus = AsyncReturnType<
   typeof getAllAccountsWithRelevantByOptionalStatus
 >;
+
+export type AccountWithRelevantNotNull = NonNullable<AccountWithRelevant>;
