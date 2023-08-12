@@ -1,6 +1,5 @@
 import {
   Button,
-  ChakraProps,
   Modal,
   ModalBody,
   ModalCloseButton,
@@ -9,20 +8,19 @@ import {
   ModalHeader,
   ModalOverlay,
   ModalProps,
-  useDisclosure,
 } from '@chakra-ui/react';
 
 type basicHandler = (e: React.FormEvent) => void;
 
-function ManualClose(props: {
+function AlertDialog(props: {
   size?: ModalProps['size'];
   isOpen: boolean;
   onClose: () => void;
   handleConfirm: basicHandler;
-  modalBody: JSX.Element;
   modalTitle?: string;
+  children?: React.ReactNode;
 }) {
-  const { isOpen, onClose, handleConfirm, modalBody, modalTitle, size } = props;
+  const { isOpen, onClose, handleConfirm, children, modalTitle, size } = props;
 
   return (
     <>
@@ -36,7 +34,7 @@ function ManualClose(props: {
         <ModalContent>
           <ModalHeader>{modalTitle ?? 'Confirm'}</ModalHeader>
           <ModalCloseButton />
-          <ModalBody pb={6}>{modalBody}</ModalBody>
+          <ModalBody pb={6}>{children}</ModalBody>
 
           <ModalFooter>
             <Button colorScheme="blue" mr={3} onClick={handleConfirm}>
@@ -50,4 +48,4 @@ function ManualClose(props: {
   );
 }
 
-export default ManualClose;
+export default AlertDialog;

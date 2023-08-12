@@ -3,32 +3,32 @@ import prisma from '@/lib/prisma';
 const getDealsByAccount = ({ accountId: account_id }: { accountId: string }) => {
   return prisma.deal.findMany({
     where: {
-      account: {
+      Account: {
         id: account_id,
       },
     },
     include: {
-      account: {
+      Account: {
         include: {
           person: true,
         },
       },
-      salesmen: {
+      dealSalesmen: {
         select: {
-          salesman: {
+          Salesman: {
             select: {
               person: true,
             },
           },
         },
       },
-      trades: {
+      dealTrades: {
         include: {
           inventory: true,
         },
       },
       inventory: true,
-      creditor: {
+      creditors: {
         include: {
           person: true,
         },

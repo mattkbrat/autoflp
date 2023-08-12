@@ -1,9 +1,22 @@
 import prisma from '@/lib/prisma';
 
-const getAccountWithRelevant = ({ id }: { id: string }) => {
+const getAccountWithRelevant = ({
+  id,
+  dealId,
+}: {
+  id?: string;
+  dealId?: string;
+}) => {
+  if (!id) throw new Error('No id provided');
+
   return prisma.account.findUnique({
     where: {
       id,
+      deal_deal_accountToaccount: {
+        some: {
+          id: dealId,
+        },
+      },
     },
     include: {
       person: true,
@@ -12,7 +25,7 @@ const getAccountWithRelevant = ({ id }: { id: string }) => {
           creditors: true,
           inventory: true,
           dealSalesmen: {
-            include: {Salesman: true}
+            include: { Salesman: true },
           },
         },
       },

@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
 import { Deal } from '@/types/prisma/deals';
 import defaultPaymentsSelect from './defaultPaymentsSelect';
 
@@ -14,6 +13,7 @@ const inventorySelect = {
 
 const accountPersonSelect = {
   select: {
+    id: true,
     person: {
       select: {
         first_name: true,
@@ -42,7 +42,7 @@ const getDealPayments = async ({ deal }: { deal: Deal['id'] }) => {
       },
       payments: defaultPaymentsSelect,
       dealTrades: {
-        select: {
+        include: {
           inventory: inventorySelect,
         },
       },

@@ -28,6 +28,7 @@ const AccountWithIdPage = async ({
         cash: d.cash,
         status: d.state === 1,
         creditors: d.creditors,
+        id: d.id,
       };
     })
     .sort((a, b) => {

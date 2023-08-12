@@ -14,3 +14,5 @@ export type AccountsWithRelevantByStatus = AsyncReturnType<
 >;
 
 export type AccountWithRelevantNotNull = NonNullable<AccountWithRelevant>;
+export type AccountWithRelevantDeal =
+  AccountWithRelevantNotNull['deal_deal_accountToaccount'][number];

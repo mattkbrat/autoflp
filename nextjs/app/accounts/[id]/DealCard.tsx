@@ -1,8 +1,21 @@
 import { SimpleDeal } from '@/types/prisma/deals';
-import { Button, Heading, Stack, Text } from '@chakra-ui/react';
+import {
+  Button,
+  Heading,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalOverlay,
+  Stack,
+  Text,
+  useDisclosure,
+} from '@chakra-ui/react';
 import formatCurrency from '@/utils/format/formatCurrency';
+import PaymentForm from '@/components/forms/PaymentForm';
 
 export const DealCard = ({ deal }: { deal: SimpleDeal }) => {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   return (
     <Stack
       background={'blackAlpha.50'}
@@ -10,6 +23,15 @@ export const DealCard = ({ deal }: { deal: SimpleDeal }) => {
       color={deal.status ? undefined : 'gray.500'}
       textAlign={'center'}
     >
+      <Modal isOpen={isOpen} onClose={onClose} size={'xl'}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalBody>
+            <PaymentForm dealId={deal.id} />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <Heading as={'h3'} size={'lg'}>
         {deal.formattedInventory}
       </Heading>
@@ -23,7 +45,7 @@ export const DealCard = ({ deal }: { deal: SimpleDeal }) => {
         {deal.status ? 'Open' : 'Closed'}
       </Text>
       {deal.status && (
-        <Button variant={'outline'} colorScheme={'green'}>
+        <Button onClick={onOpen} variant={'outline'} colorScheme={'green'}>
           Take Payment
         </Button>
       )}

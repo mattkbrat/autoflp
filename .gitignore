@@ -108,3 +108,13 @@ dist
 .vscode/
 .idea/
 *.iml
+
+# Binaries
+*.pdf
+*.ai
+*.bmp
+*.gif
+*.ico
+*.jpg
+billing
+/nextjs/utils/formBuilder/forms

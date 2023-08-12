@@ -1,5 +1,4 @@
 import prisma from '@/lib/prisma';
-import { Deal } from '@/types/prisma/deals';
 
 const getDealsWithRelevant = async ({
   state,
@@ -9,11 +8,24 @@ const getDealsWithRelevant = async ({
   id?: string;
 }) => {
   return prisma.deal.findMany({
-    select: {
-      id: true,
-      account_id: true,
-      date: true,
-      account: {
+    include: {
+      dealCharges: {
+        select: {
+          charges: {
+            select: {
+              id: true,
+              name: true,
+              amount: true,
+            },
+          },
+        },
+      },
+      creditors: {
+        include: {
+          person: true,
+        },
+      },
+      Account: {
         include: {
           person: {
             select: {
@@ -30,13 +42,32 @@ const getDealsWithRelevant = async ({
         },
       },
       // payment: true,
-      inventory: {
+      inventory: true,
+      dealSalesmen: {
         select: {
-          make: true,
-          model: true,
-          year: true,
+          Salesman: {
+            select: {
+              salesmanPerson: {
+                select: {
+                  first_name: true,
+                  last_name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      dealTrades: {
+        select: {
+          value: true,
           vin: true,
-          id: true,
+          inventory: {
+            select: {
+              make: true,
+              model: true,
+              year: true,
+            },
+          },
         },
       },
     },
@@ -46,46 +77,21 @@ const getDealsWithRelevant = async ({
     },
     orderBy: [
       {
-        account: {
+        Account: {
           person: {
             last_name: 'asc',
           },
         },
       },
       {
-        account: {
+        Account: {
           person: {
             first_name: 'asc',
           },
         },
       },
     ],
-  }) as Promise<
-    {
-      id: string;
-      account_id: string;
-      date: string;
-      account: {
-        person: {
-          first_name: string;
-          last_name: string;
-          middle_initial: string;
-          name_suffix: string;
-          name_prefix: string;
-          id: string;
-          phone_primary: string;
-          email_primary: string;
-        };
-      };
-      inventory: {
-        make: string;
-        model: string;
-        year: string;
-        vin: string;
-        id: string;
-      };
-    }[]
-  >;
+  });
 };
 
 export default getDealsWithRelevant;
