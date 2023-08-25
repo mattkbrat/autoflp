@@ -10,9 +10,14 @@ const getInventoryByIdWithDeals = async ({
       id: inventoryId,
     },
     include: {
-      deals: {
+      deal: {
         include: {
-          account: {
+          Account: {
+            include: {
+              person: true,
+            },
+          },
+          creditors: {
             include: {
               person: true,
             },

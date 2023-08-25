@@ -9,12 +9,12 @@ export type DealWithRelevant = DealsWithRelevant[number];
 export type Deal = AsyncReturnType<typeof getDeal>;
 
 export type SimpleDeal = {
-  formattedInventory: string;
+  formattedInventory?: string;
   id: string;
   lien: string;
   cash: string;
   status: boolean; // true = open, false = closed
-  creditors: Creditor;
+  creditors?: Creditor | null;
 };
 
 export type DealWithPayments = AsyncReturnType<typeof getDealWithPayments>;

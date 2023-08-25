@@ -5,7 +5,7 @@ import { Grid, GridItem, Heading, Text } from '@chakra-ui/react';
 import { AccountWithRelevantNotNull } from '@/types/prisma/accounts';
 import { SimpleDeal } from '@/types/prisma/deals';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
-import { DealCard } from '@/app/accounts/[id]/DealCard';
+import { DealCard } from '@/components/display/DealCard';
 
 const IndividualAccountPage = ({
   account,

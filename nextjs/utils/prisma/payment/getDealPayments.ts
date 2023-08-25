@@ -1,6 +1,4 @@
 import prisma from '@/lib/prisma';
-import { Deal } from '@/types/prisma/deals';
-import defaultPaymentsSelect from './defaultPaymentsSelect';
 import { Prisma } from '@prisma/client';
 
 const inventorySelect = {
