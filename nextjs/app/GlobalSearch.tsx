@@ -23,8 +23,13 @@ const GlobalSearch = ({ searchOptions }: { searchOptions: SearchOption[] }) => {
   };
 
   useEffect(() => {
-    const pathDifferent = selected?.path !== pathname;
-    pathDifferent && router.push(selected?.path || '/');
+    if (!selected?.path) return;
+    router.push(selected.path);
+
+    // Reset the selected option
+    return () => {
+      setSelected(undefined);
+    };
   }, [selected, router, searchOptions, pathname]);
 
   const options = useMemo(
