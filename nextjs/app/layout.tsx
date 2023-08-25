@@ -1,17 +1,14 @@
 import { Inter } from 'next/font/google';
 
 import { Providers } from '@/app/providers';
-// import Header from '@/components/Header';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import formatInventory from '@/utils/format/formatInventory';
 import { SearchOption } from '@/app/GlobalSearch';
-
-const inter = Inter({ subsets: ['latin'] });
-
 import dynamic from 'next/dynamic';
-
 import prisma from '@/lib/prisma';
 import { getAccounts } from '@/utils/prisma/account';
+
+const inter = Inter({ subsets: ['latin'] });
 
 const Header = dynamic(() => import('@/components/Header'), {
   ssr: false,

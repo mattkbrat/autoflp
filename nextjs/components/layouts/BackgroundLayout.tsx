@@ -24,7 +24,7 @@ export default function BackgroundLayout({
   backgroundImage,
   heading,
   headingProps,
-  withGradient,
+  withGradient = true,
   ...stackProps
 }: {
   children: React.ReactNode;
@@ -36,15 +36,15 @@ export default function BackgroundLayout({
   const bg = useColorModeValue('whiteAlpha.800', 'blackAlpha.800'); // Less transparent on mobile
 
   const { background, deleteBackground } = useBackground({
-    query: !withGradient ? null : backgroundImage || 'pickup truck',
+    query: withGradient ? null : backgroundImage || 'pickup truck',
   });
 
-  const imageHeight = useMemo(() => {
-    if (!background?.image) return '100vh';
-    const height = background.image.height;
-    if (height > 1000) return '100vh';
-    return `${height}px`;
-  }, [background?.image]);
+  // const imageHeight = useMemo(() => {
+  //   if (!background?.image) return '100vh';
+  //   const height = background.image.height;
+  //   if (height > 1000) return '100vh';
+  //   return `${height}px`;
+  // }, [background?.image]);
 
   const colorScheme = useColorModeValue('light', 'dark');
 
@@ -76,7 +76,7 @@ export default function BackgroundLayout({
         {...stackProps}
       >
         {heading && <Heading {...headingProps}>{heading}</Heading>}
-        {background.image.height && (
+        {(!!withGradient || background.image.height) && (
           <Box
             position={'absolute'}
             top={0}
@@ -87,6 +87,7 @@ export default function BackgroundLayout({
           >
             {withGradient ? (
               <Box
+                id={'gradient-layover'}
                 className={style[colorScheme]}
                 position={'absolute'}
                 top={0}
@@ -94,9 +95,11 @@ export default function BackgroundLayout({
                 zIndex={-1}
                 w={'100%'}
                 h={'full'}
+                outline={'1px solid red'}
               />
             ) : (
               <Image
+                id={'background-image-layover'}
                 src={background?.image.direct}
                 alt="Background"
                 width={background.image.width}
@@ -118,44 +121,50 @@ export default function BackgroundLayout({
         )}
         {children}
       </Stack>
-      <Box position={'absolute'} top={2} right={2}>
-        <Box
-          background={bg}
-          backdropBlur={'lg'}
-          backdropFilter={'blur(2px)'}
-          fontSize={'xs'}
-          color={'gray.500'}
-          p={2}
-          borderRadius={'sm'}
-          fontFamily={'monospace'}
-        >
-          <Link
-            href={background?.image.unsplash}
-            target={'_blank'}
-            rel={'noreferrer'}
+      {!withGradient && (
+        <Box position={'absolute'} top={2} right={2}>
+          <Box
+            background={bg}
+            backdropBlur={'lg'}
+            backdropFilter={'blur(2px)'}
+            fontSize={'xs'}
+            color={'gray.500'}
+            p={2}
+            borderRadius={'sm'}
+            fontFamily={'monospace'}
           >
-            Photo by
-          </Link>{' '}
-          <Link
-            href={background?.attribution.link}
-            target={'_blank'}
-            rel={'noreferrer'}
-          >
-            {background?.attribution.name}
-          </Link>{' '}
-          on{' '}
-          <Link href={'https://unsplash.com/'} target={'_blank'} rel={'noreferrer'}>
-            Unsplash
-          </Link>
-          <IconButton
-            aria-label={'Delete background'}
-            icon={<BiRefresh />}
-            onClick={deleteBackground}
-            size={'xs'}
-            ml={2}
-          />
+            <Link
+              href={background?.image.unsplash}
+              target={'_blank'}
+              rel={'noreferrer'}
+            >
+              Photo by
+            </Link>{' '}
+            <Link
+              href={background?.attribution.link}
+              target={'_blank'}
+              rel={'noreferrer'}
+            >
+              {background?.attribution.name}
+            </Link>{' '}
+            on{' '}
+            <Link
+              href={'https://unsplash.com/'}
+              target={'_blank'}
+              rel={'noreferrer'}
+            >
+              Unsplash
+            </Link>
+            <IconButton
+              aria-label={'Delete background'}
+              icon={<BiRefresh />}
+              onClick={deleteBackground}
+              size={'xs'}
+              ml={2}
+            />
+          </Box>
         </Box>
-      </Box>
+      )}
     </Flex>
   );
 }

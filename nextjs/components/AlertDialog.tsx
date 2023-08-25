@@ -31,7 +31,7 @@ function AlertDialog(props: {
         onClose={onClose}
       >
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent mt={'auto'} mb={'auto'}>
           <ModalHeader>{modalTitle ?? 'Confirm'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>{children}</ModalBody>
