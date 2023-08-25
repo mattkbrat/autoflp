@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 import { Deal } from '@/types/prisma/deals';
 import defaultPaymentsSelect from './defaultPaymentsSelect';
+import { Prisma } from '@prisma/client';
 
 const inventorySelect = {
   select: {
@@ -23,7 +24,7 @@ const accountPersonSelect = {
   },
 };
 
-const getDealPayments = async ({ deal }: { deal: Deal['id'] }) => {
+const getDealPayments = async ({ deal }: { deal: string }) => {
   return prisma.deal.findFirst({
     where: {
       id: deal,
@@ -40,7 +41,22 @@ const getDealPayments = async ({ deal }: { deal: Deal['id'] }) => {
           },
         },
       },
-      payments: defaultPaymentsSelect,
+      payments: {
+        select: {
+          deal: true,
+          date: true,
+          amount: true,
+          id: true,
+        },
+        orderBy: [
+          {
+            date: 'desc' as Prisma.SortOrder,
+          },
+          {
+            amount: 'desc' as Prisma.SortOrder,
+          },
+        ],
+      },
       dealTrades: {
         include: {
           inventory: inventorySelect,

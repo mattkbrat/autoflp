@@ -1,7 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { HTTP_METHOD } from 'next/dist/server/web/http';
-import { getDealPayments } from '@/utils/prisma/payment';
+import {
+  createPayment,
+  deletePayment,
+  getDealPayments,
+} from '@/utils/prisma/payment';
 import { withSessionRoute } from '@/utils/auth/withSession';
+import { DealPayment, PaymentWithDate } from '@/types/prisma/payments';
 
 const dealPaymentsHandler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { deal } = req.query;
@@ -18,19 +23,27 @@ const dealPaymentsHandler = async (req: NextApiRequest, res: NextApiResponse) =>
 
   const method = req.method as HTTP_METHOD;
 
+  const payment: PaymentWithDate = req.body;
+
   switch (method) {
     case 'GET':
-      return res.send(getDealPayments({ deal }));
+      return res.send(await getDealPayments({ deal }));
     case 'HEAD':
       break;
     case 'OPTIONS':
       break;
     case 'POST':
-      break;
+      return res.send(
+        await createPayment({
+          ...payment,
+          deal_id: deal,
+          date: payment.date.toString(),
+        }),
+      );
     case 'PUT':
       break;
     case 'DELETE':
-      break;
+      return res.send(await deletePayment({ payment: deal }));
     case 'PATCH':
       break;
   }

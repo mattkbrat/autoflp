@@ -28,7 +28,11 @@ import {
   useDisclosure,
   useToast,
 } from '@chakra-ui/react';
-import { AccountsWithRelevantWithPayments, Payment } from '@/types/prisma/payments';
+import {
+  AccountsWithRelevantWithPayments,
+  DealPayment,
+  PaymentWithDate,
+} from '@/types/prisma/payments';
 import { AccountWithRelevantDeal } from '@/types/prisma/accounts';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import formatInventory from '@/utils/format/formatInventory';
@@ -38,18 +42,33 @@ import FormWrap from '@/components/FormWrap';
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 const deletePayment = async (id: string) => {
-  return fetch(`/api/payments?payment_id=${id}`, {
+  return fetch(`/api/payments/${id}`, {
     method: 'DELETE',
   }).then((res) => res.json());
 };
 
-const recordPayment = async (payment: Payment) => {
-  return fetch(`/api/payments`, {
+const recordPayment = async ({
+  amount,
+  deal,
+  date,
+}: {
+  amount: number;
+  deal: string;
+  date: Date;
+}) => {
+  const body: PaymentWithDate = {
+    amount: amount.toFixed(2),
+    payment: amount,
+    date: date,
+    deal: deal,
+    id: '',
+  };
+  return fetch(`/api/payments/${deal}`, {
     method: 'POST',
-    body: JSON.stringify({
-      ...payment,
-      id: payment.deal_id,
-    }),
+    body: JSON.stringify(body),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   })
     .then((response) => response)
     .then((response) => response.json()); // send response body to next then chain
@@ -67,22 +86,24 @@ const PaymentForm = ({
   const [selectedCustomer, setSelectedCustomer] =
     useState<null | AccountsWithRelevantWithPayments>(null);
 
-  useEffect(() => {
-    fetch(`/api/deal/${dealId}`).then(async (res) => {
-      const data = await res.json();
-      setSelectedCustomer(data as AccountsWithRelevantWithPayments);
-    });
-  }, [dealId]);
-
   const [message, setMessage] = useState<string | null>(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [changes, setChanges] = useState<{
-    payment: number;
-    date: Date;
-  } | null>({
+  const [changes, setChanges] = useState<Partial<PaymentWithDate> | null>({
     payment: 0,
     date: new Date(),
   });
+
+  useEffect(() => {
+    fetch(`/api/deal/${dealId}`).then(async (res) => {
+      const data: AccountsWithRelevantWithPayments = await res.json();
+      console.log(data);
+      setSelectedCustomer(data);
+      setChanges({
+        ...changes,
+        payment: +(data.deal_deal_accountToaccount?.[0]?.pmt || 0),
+      });
+    });
+  }, [dealId]);
 
   const thisDeal = useMemo(() => {
     if (!selectedCustomer) return null;
@@ -157,14 +178,18 @@ const PaymentForm = ({
   // }, [payments]);
 
   function handlePayment(deal_id: string, amount: string) {
-    if (!payments) {
+    if (!payments || !thisDeal || !changes) {
       return;
     }
     setChanges({ ...(changes || { date: new Date() }), payment: 0 });
-    recordPayment(changes)
+    recordPayment({
+      amount: Number(amount),
+      deal: deal_id,
+      date: changes?.date || new Date(),
+    })
       .then((body) => {
-        if (body.payment) {
-          setMessage('PaymentForm successful');
+        if (body.amount) {
+          setMessage('Payment successful');
 
           const newCustomer = selectedCustomer;
 
@@ -175,9 +200,9 @@ const PaymentForm = ({
           newCustomer.payment = [
             {
               amount: amount,
-              id: body?.payment.id,
+              id: body?.id,
               date: new Date(),
-              deal_id: deal_id,
+              deal: deal_id,
               payment: +amount,
             },
             ...(newCustomer?.payment ?? []),
@@ -186,9 +211,9 @@ const PaymentForm = ({
           setSelectedCustomer(newCustomer);
         } else {
           if (+amount <= 0) {
-            setMessage('PaymentForm amount must be greater than 0.');
+            setMessage('Payment amount must be greater than 0.');
           } else {
-            setMessage('PaymentForm failed, it has likely already been made.');
+            setMessage('Payment not recorded. It has likely already been recorded.');
           }
         }
       }) // you can use response body here
@@ -223,7 +248,7 @@ const PaymentForm = ({
         <Thead>
           <Tr>
             <Th>Delete</Th>
-            <Th>PaymentForm</Th>
+            <Th>Pmt</Th>
             <Th>Date</Th>
           </Tr>
         </Thead>
@@ -278,13 +303,13 @@ const PaymentForm = ({
             onClose={onClose}
             handleConfirm={() => {
               if (!changes?.payment) {
-                setMessage('PaymentForm amount must be greater than 0.');
+                setMessage('Payment amount must be greater than 0.');
                 return;
               }
               const thisPayment: string = changes.payment.toFixed(2);
 
               if (Number.isNaN(+thisPayment) || +thisPayment <= 0) {
-                setMessage('PaymentForm amount must be greater than 0.');
+                setMessage('Payment amount must be greater than 0.');
               }
               handlePayment(dealId, thisPayment);
             }}
@@ -301,10 +326,10 @@ const PaymentForm = ({
                 ?
               </Text>
               <Table>
-                <caption>PaymentForm Details</caption>
+                <caption>Details</caption>
                 <Thead>
                   <Tr>
-                    <Th>PaymentForm</Th>
+                    <Th>Payment</Th>
                     <Td>
                       {Intl.NumberFormat('en-US', {
                         style: 'currency',
@@ -313,7 +338,7 @@ const PaymentForm = ({
                     </Td>
                   </Tr>
                   <Tr>
-                    <Th>PaymentForm Date</Th>
+                    <Th>Date</Th>
                     <Td colSpan={2}>
                       {(changes?.date || new Date()).toLocaleString()}
                     </Td>
@@ -368,7 +393,7 @@ const PaymentForm = ({
           <TabPanel>
             <FormWrap
               message={message ?? ''}
-              title="PaymentForm"
+              title="Payment"
               formType="new"
               onSubmit={onSubmit}
               changes={changes || { payment: 0, date: new Date() }}
@@ -395,7 +420,7 @@ const PaymentForm = ({
                   {thisInventory}
                 </Text>
                 <FormControl isRequired id="payment_date">
-                  <FormLabel>PaymentForm Date</FormLabel>
+                  <FormLabel>Date</FormLabel>
                   <Input
                     type="datetime-local"
                     value={
@@ -412,7 +437,7 @@ const PaymentForm = ({
                   />
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>PaymentForm Amount</FormLabel>
+                  <FormLabel>Amount</FormLabel>
                   <CurrencyInput
                     max={amountOwed}
                     // formLabel="Amount"
