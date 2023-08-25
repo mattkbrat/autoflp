@@ -1,7 +1,7 @@
 import { addressFromPerson, fullNameFromPerson, getBusinessData } from './functions';
 import generate from './generate';
 import { getDealsWithRelevant } from '@/utils/prisma/deal';
-import { Payment } from '@/types/prisma/payments';
+import { DealPayment } from '@/types/prisma/payments';
 import { delinquent, financeHistory } from '@/utils/finance';
 import getCustomerStatus from '@/utils/finance/customerStatus';
 import { datePlusMonths, monthsBetweenDates } from '@/utils/date';
@@ -27,7 +27,7 @@ async function generateBillingStatements() {
   for (const chunk of chunkedDeals) {
     let statement: string[] = [];
     for (const c of chunk) {
-      const customer: Extract<Payment, { id: string }> = c;
+      const customer: Extract<DealPayment, { id: string }> = c;
       let thisStatement = [];
       const customerName = fullNameFromPerson(customer.Account.person);
 
