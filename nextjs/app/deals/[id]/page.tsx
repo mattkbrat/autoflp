@@ -1,16 +1,16 @@
-import { getOne, getAccountWithRelevant } from '@/utils/prisma/accounts';
 import { redirect } from 'next/navigation';
 import BackgroundLayout from '@/components/layouts/BackgroundLayout';
-import { getPersonByAccountId } from '@/utils/prisma/person';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import PersonForm from '@/components/forms/PersonForm';
 import { useColorMode, useColorModeValue } from '@chakra-ui/react';
 import AccountForm from '@/components/forms/AccountForm';
+import getPerson from '@/utils/prisma/person/getPerson';
+import { getAccountWithRelevant } from '@/utils/prisma/account';
 
 export const generateMetadata = async ({ params }: { params: { id: string } }) => {
   console.info(params);
-  const person = await getPersonByAccountId(params.id);
+  const person = await getPerson({ id: params.id });
 
   const fullName = fullNameFromPerson(person);
 
@@ -31,7 +31,7 @@ export default async function ManageAccountPage({
     redirect('/accounts');
   }
 
-  const account = await getAccountWithRelevant(id);
+  const account = await getAccountWithRelevant({ id });
 
   if (!account) {
     redirect('/accounts');

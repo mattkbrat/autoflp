@@ -44,6 +44,8 @@ export type FinanceCalcResult = {
   totalCost: number;
 };
 
+export type FinanceCalcResultKeys = (keyof FinanceCalcResult)[];
+
 export type FinanceCalcKeys = keyof FinanceCalcResult;
 
 export type ParsedAmortizationSchedule = {

@@ -1,18 +1,16 @@
+import { Deal, Person } from '@prisma/client';
 import { fullNameFromPerson } from './fullNameFromPerson';
-import formatDate from 'lib/date/format';
-import { dealByIdType } from 'lib/prisma/deals';
-import { forms } from 'types/forms';
-
-import { deal, person } from '@prisma/client';
+import { Form } from '@/types/forms';
+import formatDate from '@/utils/date/format';
 
 function generateOutputFilename({
   deal,
   person,
   form,
 }: {
-  deal?: deal | dealByIdType;
-  person?: person | null;
-  form: forms | forms[];
+  deal?: Deal;
+  person?: Person | null;
+  form: Form | Form[];
 }): string | string[] {
   if (person === null || typeof person === 'undefined') {
     throw 'Must provide a person';

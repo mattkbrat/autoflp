@@ -11,8 +11,8 @@ import {
   StackDivider,
   Text,
 } from '@chakra-ui/react';
-import { account, person } from '@prisma/client';
-import { BasicTextInput } from '@/components/Inputs/BasicTextInput';
+import { TextInput } from '@/components/Inputs/TextInput';
+import { Person } from '@/types/prisma/person';
 
 /*
 
@@ -37,12 +37,12 @@ import { BasicTextInput } from '@/components/Inputs/BasicTextInput';
   email_secondary String?
 
 */
-const PersonForm = ({ editing }: { editing: person }) => {
-  const [changes, setChanges] = useState<Partial<person>>(editing);
+const PersonForm = ({ editing }: { editing: Person }) => {
+  const [changes, setChanges] = useState<Partial<Person>>(editing);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setChanges((prev) => ({ ...prev, [name]: value }));
+    setChanges((prev: Partial<Person>) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLDivElement>) => {
@@ -59,33 +59,33 @@ const PersonForm = ({ editing }: { editing: person }) => {
       px={2}
     >
       <Stack direction={{ base: 'column', md: 'row' }} spacing={{ base: 4, md: 6 }}>
-        <BasicTextInput
+        <TextInput
           name="name_prefix"
           label="prefix"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           isRequired
           name="first_name"
           label="first"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="middle_initial"
           label="m i"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           isRequired
           name="last_name"
           label="last"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="name_suffix"
           label="suffix"
           changes={changes}
@@ -93,20 +93,20 @@ const PersonForm = ({ editing }: { editing: person }) => {
         />
       </Stack>
       <Stack direction={{ base: 'column', md: 'row' }} spacing={{ base: 4, md: 6 }}>
-        <BasicTextInput
+        <TextInput
           isRequired
           name="address_1"
           label="address 1"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="address_2"
           label="address 2"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="address_3"
           label="address 3"
           changes={changes}
@@ -114,28 +114,28 @@ const PersonForm = ({ editing }: { editing: person }) => {
         />
       </Stack>
       <Stack direction={{ base: 'column', md: 'row' }} spacing={{ base: 0, md: 4 }}>
-        <BasicTextInput
+        <TextInput
           isRequired
           name="city"
           label="city"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           isRequired
           name="state_province"
           label="state"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           isRequired
           name="zip_postal"
           label="zip"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="zip_4"
           label="zip 4"
           changes={changes}
@@ -143,27 +143,27 @@ const PersonForm = ({ editing }: { editing: person }) => {
         />
       </Stack>
       <Stack direction={{ base: 'column', md: 'row' }} spacing={{ base: 4, md: 6 }}>
-        <BasicTextInput
+        <TextInput
           isRequired
           name="country"
           label="country"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           isRequired
           name="phone_primary"
           label="primary"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="phone_secondary"
           label="secondary"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="phone_tertiary"
           label="tertiary"
           changes={changes}
@@ -171,13 +171,13 @@ const PersonForm = ({ editing }: { editing: person }) => {
         />
       </Stack>
       <Stack direction={{ base: 'column', md: 'row' }} spacing={{ base: 4, md: 6 }}>
-        <BasicTextInput
+        <TextInput
           name="email_primary"
           label="primary email"
           changes={changes}
           setChanges={setChanges}
         />
-        <BasicTextInput
+        <TextInput
           name="email_secondary"
           label="secondary email"
           changes={changes}

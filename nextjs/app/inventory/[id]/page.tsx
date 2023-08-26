@@ -14,7 +14,9 @@ const InventoryWithIdPage = async ({
     return <p>No inventory found with id {params.id}</p>;
   }
 
-  return <InventoryCard inventory={inventory} />;
+  return <InventoryCard 
+  inventory={inventory} 
+  />;
 };
 
 export default InventoryWithIdPage;

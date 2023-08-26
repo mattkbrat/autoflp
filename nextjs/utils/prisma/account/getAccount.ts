@@ -15,7 +15,7 @@ const getAccount = ({
   return prisma.account.findUnique({
     where: {
       id,
-      person: {
+      person: !creditorId ? undefined : {
         creditors: {
           some: {
             id: creditorId,

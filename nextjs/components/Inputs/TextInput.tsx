@@ -31,7 +31,7 @@ function parse(name: string, value: string): string | number | boolean | undefin
   return formatted;
 }
 
-export function BasicTextInput(props: {
+export function TextInput(props: {
   name: string;
   value?: string;
   label?: string;

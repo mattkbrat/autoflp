@@ -1,22 +1,55 @@
 'use client';
 
 import { InventoryWithDeals } from '@/types/prisma/inventory';
-import { Code, Grid, GridItem, Heading, Stack } from '@chakra-ui/react';
+import { Code, Grid, GridItem, Heading, Spinner, Stack } from '@chakra-ui/react';
 import formatInventory from '@/utils/format/formatInventory';
 import { useColors } from '@/hooks/useColors';
 import { DealCard } from '@/components/display/DealCard';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
+import { useEffect, useMemo, useState } from 'react';
 
-// inventory: {id: string, vin: string, year: string, make: string, model: string | null, body: string | null, color: string | null, fuel: string | null, cwt: string | null, mileage: string | null, date_added: string | null, ...}
 const InventoryCard = ({
-  inventory,
+  inventoryID,
+  inventory: defaultInventory,
+  withAccounts = true,
 }: {
-  inventory: NonNullable<InventoryWithDeals>;
+  inventoryID?: string | null;
+  inventory?: InventoryWithDeals;
+  withAccounts?: boolean;
 }) => {
-  const formatted = formatInventory(inventory);
+  const [inventory, setInventory] = useState<InventoryWithDeals>(defaultInventory || null);
+
+  useEffect(() => {
+    inventoryID &&
+    setInventory(null)
+  }
+  , [inventoryID]);
+
+  useEffect(() => {
+    if (!inventory && inventoryID) {
+      fetch(`/api/inventory/${inventoryID}/withDeals`)
+        .then((res) => res.json())
+        .then((data) => {
+          setInventory(data);
+        }
+      );
+    }
+  }, [inventory, inventoryID]);
+
+  const formatted = useMemo(() => {
+    if (inventory) {
+      return formatInventory(inventory);
+    }
+    return '';
+  }, [inventory]);
 
   const { bg, accent } = useColors();
 
+  if (!inventory){
+    return (
+        inventoryID ? <Spinner /> : <div>No inventory selected</div> 
+    )
+  }
   return (
     <Stack
       p={2}
@@ -36,7 +69,7 @@ const InventoryCard = ({
           md: 'repeat(3, 1fr)',
         }}
       >
-        {inventory.deal.map((deal, n) => {
+        {withAccounts && inventory.deal.map((deal, n) => {
           return (
             <GridItem key={n}>
               <Stack p={4} outlineOffset={-4} borderRadius={2} outline={accent}>

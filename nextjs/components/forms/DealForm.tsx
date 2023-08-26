@@ -1,0 +1,1243 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { FaFileDownload } from 'react-icons/fa';
+import { print } from '@/utils/print';
+
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Divider,
+  Flex,
+  FormControl,
+  FormLabel,
+  Grid,
+  Heading,
+  Input,
+  InputGroup,
+  InputRightAddon,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  Select,
+  Stack,
+  Tab,
+  Table,
+  TableCaption,
+  TabList,
+  TabPanel,
+  TabPanels,
+  Tabs,
+  Tbody,
+  Td,
+  Text,
+  Th,
+  Thead,
+  Tooltip,
+  Tr,
+  useDisclosure,
+} from '@chakra-ui/react';
+import isDev from '@/lib/isDev';
+import AmortizationSchedule from '@/components/AmortizationSchedule';
+import { Deal } from '@/types/prisma/deals';
+import { formsType } from '@/types/formsType';
+import { FinanceCalcResult, FinanceCalcResultKeys } from '@/types/Schedule';
+import { datePlusMonths } from '@/utils/date';
+import financeCalc from '@/utils/finance/calc';
+import roundToPenny from '@/utils/finance/roundToPenny';
+import globals from 'styles/globals.module.css';
+import PersonSelector from '@/components/selects/PersonSelector';
+import AccountForm from '@/components/forms/AccountForm';
+import PersonForm from '@/components/forms/PersonForm';
+import InventoryCard from '@/components/display/InventoryCard';
+import CurrencyInput from '@/components/Inputs/CurrencyInput';
+import { PercentageInput } from '@/components/Inputs/PercentageInput';
+import financeFormat from '@/utils/finance/format';
+import PieChart from '@/components/Charts/Pie';
+import colors from '@/lib/colors';
+import FormWrap from '@/components/FormWrap';
+import AlertDialog from '@/components/AlertDialog';
+import PersonCard from '../display/PersonCard';
+import AccountCard from '@/components/display/AccountCard';
+import InventorySelector from '../selects/InventorySelector';
+import { Person } from '@prisma/client';
+import { PersonCreditor } from '@/types/prisma/person';
+import { downloadZip } from '@/utils/formBuilder/downloadZip';
+import { Form } from '@/types/forms';
+
+const debug = isDev;
+
+const RenderAmortizationSchedule = ({
+  chartId,
+  changes,
+  calculatedFinance,
+}: {
+  chartId: string;
+  changes: any;
+  calculatedFinance: any;
+}) => {
+  return (
+    <AmortizationSchedule
+      defaultSchedule={{
+        principal: +(changes.totalLoanAmount ?? 0),
+        startDate:
+          typeof changes.date === 'string' ? new Date(changes.date) : new Date(),
+        numberOfPayments: +changes.term ?? 0,
+        annualRate: +changes.apr ?? 0,
+        pmt: +changes.monthlyPayment ?? 0,
+        finance: calculatedFinance,
+      }}
+      defaultShow={false}
+      withChart={true}
+      chartId={chartId}
+    />
+  );
+};
+
+/**
+ * This page will be rendered at /deal
+ * It will feature a list of accounts, and a form to add a new account
+ * It will also feature a list of creditors, and a form to add a new creditor
+ * It will also feature a list of inventory, and a form to add a new inventory
+ * For the form itself, it will be a modal with the inputs for term, down payment, and selling price
+ * The selling price will be calculated from the inventory price, and the term and down payment
+ * @returns JSX.Element
+ */
+export function DealForm(props: { id: string }) {
+  const { id } = props;
+  const [changes, setChanges] = useState<Partial<Deal>>({
+    id,
+    tax_city: 0,
+    tax_rtd: 0,
+    tax_county: 0,
+    tax_state: 2.9,
+    down: 0,
+    downOwed: 0,
+    sale_type: 'credit',
+    term: 12,
+    date: new Date().toISOString().split('T')[0],
+  } as Partial<Deal>);
+  const [aid, setAid] = useState<string | null>(null); // account id
+  const [pid, setPid] = useState<string | null>(null); // person id
+  const [iid, setIid] = useState<string | number | null>(null); // inventory id
+  const [cid, setCid] = useState<string | null>(null); // Creditor ID
+  const [sid, setSid] = useState<string | null>(null); // Salesperson ID
+
+  const [calculatedFinance, setCalculatedFinance] =
+    useState<FinanceCalcResult | null>(null);
+
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // useEffect(() => {
+  //   if (showAlert) {
+  //     onOpen();
+  //   } else {
+  //     onClose();
+  //   }
+  // }, [showAlert]);
+
+  const [forms, setForms] = useState<Form[]>([]); // Form data
+
+  const [trades, setTrades] = useState<
+    {
+      make?: string;
+      model?: string;
+      year?: string;
+      vin?: string;
+      value?: number;
+    }[]
+  >([]);
+
+  const [inventoryPrices, setInventoryPrices] = useState<{
+    selling?: number;
+    trading?: number | null;
+    credit?: number;
+    cash?: number;
+    down?: number;
+  }>({
+    selling: 0,
+    down: 0,
+    trading: null,
+  });
+  const [message, setMessage] = useState<string | null>(null);
+
+  // const MemoizedSchedule = useMemo(() => {
+  //   if (!calculatedFinance || changes.sale_type !== "credit") {
+  //     return <></>;
+  //   }
+
+  //   return (
+  //     <AmortizationSchedule
+  //       defaultSchedule={{
+  //         principal: +(changes.totalLoanAmount ?? 0),
+  //         startDate:
+  //           typeof changes.date === "string"
+  //             ? new Date(changes.date)
+  //             : new Date(),
+  //         numberOfPayments: +changes.term ?? 0,
+  //         annualRate: +changes.apr ?? 0,
+  //         pmt: +changes.monthlyPayment ?? 0,
+  //         finance: calculatedFinance,
+  //       }}
+  //       defaultShow={true}
+  //       withChart={true}
+  //     />
+  //   );
+  // }, [
+  //   changes.apr,
+  //   changes.selling_value,
+  //   changes.term,
+  //   changes.date,
+  //   changes.totalLoanAmount,
+  //   changes.monthlyPayment,
+  //   calculatedFinance,
+  // ]);
+
+  useEffect(() => {
+    setChanges({
+      ...changes,
+      account: aid,
+      inventory: iid,
+      salesman: sid,
+    });
+  }, [aid, iid, sid]);
+
+  useEffect(() => {
+    if (!cid) {
+      return;
+    }
+
+    const cid_split = cid.split(':');
+    setChanges((changes) => ({
+      ...changes,
+      creditor: cid_split[0],
+      filing_fees: cid_split[1],
+      apr: cid_split[2],
+    }));
+  }, [cid, setChanges]);
+
+  useEffect(() => {
+    const creditIsNumber = inventoryPrices?.credit && inventoryPrices.credit > 0;
+    const saleTypeIsCredit = changes.sale_type === 'credit';
+
+    const selling_value =
+      saleTypeIsCredit && creditIsNumber
+        ? inventoryPrices.credit
+        : inventoryPrices.cash;
+
+    setChanges({
+      ...changes,
+      selling_value: +(selling_value || 0),
+      down: inventoryPrices['down'],
+    });
+  }, [changes.sale_type, inventoryPrices]);
+
+  useEffect(() => {
+    const totalTradeValue = trades.reduce((acc, trade) => {
+      return acc + (trade.value ?? 0);
+    }, 0);
+
+    setChanges({
+      ...changes,
+      trade_value: totalTradeValue,
+    });
+  }, [trades]);
+
+  useEffect(() => {
+    if (changes.sale_type === 'credit' && changes.term === 0) {
+      setChanges({
+        ...changes,
+        sale_type: 'cash',
+      });
+    }
+
+    // Keep the down owed updated
+
+    const newDownOwed = Math.min(+changes.downOwed, +changes.down);
+    if (newDownOwed !== +changes.downOwed) {
+      setChanges({
+        ...changes,
+        downOwed: newDownOwed,
+      });
+    }
+
+    const sellingValue = +changes.selling_value;
+    const tradeValue = +changes.trade_value;
+    let totalTaxPercent =
+      (+changes.tax_city +
+        +changes.tax_county +
+        +changes.tax_rtd +
+        +changes.tax_state) /
+      100;
+    totalTaxPercent = Math.round(totalTaxPercent * 1000) / 1000;
+    const totalValue = (sellingValue - tradeValue) * (1 + totalTaxPercent);
+
+    if (changes.sale_type === 'cash' && changes.down !== totalValue) {
+      setChanges({
+        ...changes,
+        down: totalValue,
+      });
+    }
+
+    // if ((+changes.selling_value) < (+changes.down) + (+changes.trade_value)) {
+    //   setChanges({
+    //     ...changes,
+    //     term: 0,
+    //     sale_type: "cash",
+    //   });
+    // } else {
+    //   setChanges({
+    //     ...changes,
+    //     term: 12,
+    //     sale_type: "credit",
+    //   });
+    // }
+  }, [changes]);
+
+  useEffect(() => {
+    const date = changes.date;
+    if (!changes.selling_value || typeof date !== 'string') {
+      return;
+    }
+
+    const firstPaymentDate = datePlusMonths(date, 1);
+
+    const finance: FinanceCalcResult = financeCalc({
+      tax: {
+        city: Number.isNaN(+changes.tax_city) ? 0 : +changes.tax_city,
+        rtd: Number.isNaN(+changes.tax_rtd) ? 0 : +changes.tax_rtd,
+        state: Number.isNaN(+changes.tax_state) ? 0 : +changes.tax_state,
+        county: Number.isNaN(+changes.tax_county) ? 0 : +changes.tax_county,
+      },
+      prices: {
+        selling: Number.isNaN(+changes.selling_value) ? 0 : +changes.selling_value,
+        down: Number.isNaN(+changes.down) ? 0 : +changes.down,
+        trade: Number.isNaN(+changes.trade_value) ? 0 : +changes.trade_value, // TODO: add trade value to the form
+      },
+      creditor: {
+        term: +changes.term,
+        filingFees: Number.isNaN(+changes.filing_fees) ? 0 : +changes.filing_fees,
+        apr: Number.isNaN(+changes.apr) ? 10 : +changes.apr, // TODO: add apr to the form
+      },
+      firstPayment: new Date(firstPaymentDate),
+    });
+
+    setCalculatedFinance(finance);
+
+    setChanges({
+      ...changes,
+      ...finance,
+    });
+  }, [
+    changes.selling_value,
+    changes.down,
+    changes.term,
+    changes.filing_fees,
+    changes.apr,
+    changes.tax_city,
+    changes.tax_rtd,
+    changes.tax_state,
+    changes.tax_county,
+    changes.trade_value,
+    changes.date,
+  ]);
+
+  const AboutDeal = (props: {
+    direction?: { base: 'column' | 'row'; lg: 'column' | 'row' };
+  }) => {
+    if (!calculatedFinance) {
+      return <></>;
+    }
+
+    const direction = props.direction || { base: 'column', lg: 'row' };
+
+    const isCredit = changes.sale_type === 'credit';
+
+    const metrics = [
+      'cashBalanceIncludingTax',
+      'totalTaxDollar',
+      'lastPaymentDueDate',
+      'lastPayment',
+      'monthlyPayment',
+      'totalLoanAmount',
+    ] as FinanceCalcResultKeys;
+
+    return (
+      <Stack
+        spacing={{ base: 4, md: 10 }}
+        direction={direction}
+        // spacing={{ base: 0, md: 4 }}
+        w={'100%'}
+        justifyContent={'space-between'}
+      >
+        {metrics.map((metric) => {
+          if (!Object.keys(calculatedFinance).includes(metric)) {
+            return <></>;
+          }
+
+          const firstCapitalIndex = metric.search(/[A-Z]/);
+          // Split at capital
+          let metricName: string = metric;
+          if (firstCapitalIndex !== -1) {
+            metricName =
+              metric.slice(0, firstCapitalIndex) +
+              ' ' +
+              metric.slice(firstCapitalIndex);
+          }
+          metricName = metricName.replaceAll('_', ' ').toUpperCase();
+
+          return (
+            <Flex direction={'column'} key={metric} w={{ base: '100%', md: 'auto' }}>
+              <Text
+                fontSize={'md'}
+                fontWeight={'bold'}
+                color={'gray.500'}
+                textAlign={'center'}
+              >
+                {metricName}
+              </Text>
+              <Text fontSize={'lg'} fontWeight={'bold'} textAlign={'center'}>
+                {roundToPenny(calculatedFinance[metric])}
+              </Text>
+            </Flex>
+          );
+        })}
+      </Stack>
+    );
+  };
+
+  function performPrechecks() {
+    const errors = [];
+
+    if (
+      (typeof changes.apr === 'undefined' && changes.sale_type === 'credit') ||
+      (changes.sale_type === 'credit' && typeof changes.creditor !== 'string')
+    ) {
+      errors.push('Creditor required.');
+    }
+
+    if (typeof changes.date !== 'string') {
+      errors.push('Date required.');
+    }
+
+    if (typeof changes.account !== 'string' || changes.account.length === 0) {
+      errors.push('Account required.');
+    }
+
+    if (typeof changes.inventory !== 'string' || changes.inventory.length === 0) {
+      if (typeof iid === 'undefined' || iid === null) {
+        errors.push('Selling vehicle required.');
+      } else {
+        setChanges({
+          ...changes,
+          inventory: iid,
+        });
+      }
+    }
+
+    if (typeof changes.selling_value === 'undefined' || changes.selling_value <= 0) {
+      console.log('changes.totalCost', changes.totalCost);
+      errors.push('Selling value required.');
+    }
+
+    if (
+      typeof changes.salesman === 'undefined' ||
+      changes.salesman === '' ||
+      sid === null
+    ) {
+      errors.push('Salesman required.');
+    }
+
+    // if (changes.totalCost < (+changes.down || 0) + (+changes.trade_value || 0)) {
+    //   errors.push("Down payment plus trade cannot exceed selling value.");
+    // }
+
+    if (errors.length > 0) {
+      if (errors.length > 1) {
+        setMessage('Errors: ' + errors.join(' '));
+      } else {
+        setMessage('Error: ' + errors[0]);
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  function handleSubmit() {
+    // e.preventDefault();
+
+    // Create vehicles for trade ins
+    const tradeVehicles = trades.map((trade) => {
+      return {
+        vin: trade.vin,
+        year: trade.year,
+        make: trade.make,
+        model: trade.model,
+        cash: trade.value,
+      };
+    });
+
+    const monthlyPayment = +changes.monthlyPayment || 0;
+    const finance = +changes.totalLoanAmount;
+    const apr = +changes.apr || 0;
+
+    if (!calculatedFinance) {
+      setMessage('Error: Could not calculate finance.');
+      return;
+    }
+
+    const body: Deal = {
+      id,
+      state: changes.sale_type === 'credit' ? 1 : 0,
+      // match format yyyy-mm-dd
+      date: changes.date as string,
+      account: changes.account as string,
+      inventory: changes.inventory as string,
+      creditor: changes.sale_type === 'credit' ? (changes.creditor as string) : null,
+      cash: changes.selling_value.toString(),
+      down: (changes.down || 0).toString(),
+      apr: apr.toFixed(2),
+      finance: calculatedFinance.financeAmount.toFixed(2),
+      lien: (changes.sale_type === 'credit'
+        ? calculatedFinance.totalLoanAmount
+        : 0
+      ).toFixed(2),
+      pmt: calculatedFinance.monthlyPayment.toFixed(2),
+      term: changes.term.toString(),
+      tax_state: (+changes.tax_state || 0).toFixed(2),
+      tax_city: (+changes.tax_city || 0).toFixed(2),
+      tax_rtd: (+changes.tax_rtd || 0).toFixed(2),
+      tax_county: (+changes.tax_county || 0).toFixed(2),
+    };
+
+    // console.table({ body })
+    fetch('/api/deals', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ body, salesman: changes.salesman, tradeVehicles }),
+    }).then(
+      (res) => {
+        if (res.status === 200) {
+          res.json().then((data) => {
+            if (typeof data.forms !== 'undefined') {
+              const fetchedForms: any[] = data.forms;
+
+              const filteredForms = fetchedForms.filter((form) => {
+                const formName = Object.values(form)[0];
+
+                if (typeof formName !== 'string') {
+                  return false;
+                }
+
+                return formName.includes('.pdf');
+              });
+
+              setForms(filteredForms);
+
+              ({ filteredForms });
+            }
+
+            setMessage(`Success: ${data.message}`);
+          });
+        } else {
+          res.json().then((data) => {
+            setMessage({
+              ...data,
+            });
+          });
+        }
+      },
+      (err) => {
+        if (typeof err.error === 'string') {
+          setMessage(err.error);
+        } else {
+          setMessage(err);
+        }
+      },
+    );
+
+    onClose();
+  }
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!performPrechecks()) {
+      return;
+    }
+    // setMessage("");
+    // if (performPrechecks() === false) {
+    //   return;
+    // }
+
+    onOpen();
+  };
+
+  return (
+    <Stack>
+      {isOpen && (
+        <AlertDialog
+          size={'6xl'}
+          isOpen={true}
+          onClose={onClose}
+          handleConfirm={handleSubmit}
+        >
+          <Stack>
+            <Grid
+              // Two columns with footer
+              templateColumns={'1fr auto'}
+              templateRows={'1fr auto'}
+            >
+              <Stack id="aboutDeal">
+                <Heading
+                  background={'green.600'}
+                  color={'white'}
+                  fontWeight={'bold'}
+                  py={2}
+                  px={4}
+                  outline={'2px solid green.200'}
+                >
+                  Monthly Pay:&ensp;{' '}
+                  {financeFormat({
+                    num: +(calculatedFinance?.monthlyPayment || 0),
+                    withoutCurrency: false,
+                  })}
+                </Heading>
+                <Divider />
+                <Text fontWeight={'bold'} fontSize={'xl'}>
+                  About Deal
+                </Text>
+                <Table variant="simple" size={'lg'}>
+                  <TableCaption>Summary of the deal</TableCaption>
+                  <Thead>
+                    <Tr>
+                      <Th>Item</Th>
+                      <Th isNumeric>Value</Th>
+                    </Tr>
+                  </Thead>
+                  {/*
+                Total Loan Amount,
+                Sale Tax,
+                Other Fees,
+                Upfront Payment,
+
+                Total of xx Loan Payments,
+                Total Loan Interest,
+                Total Loan Cost,
+                */}
+                  <Tbody>
+                    <Tr>
+                      <Td fontSize={'xl'}>Total Loan Amount (Finance)</Td>
+                      <Td fontSize={'xl'} isNumeric>
+                        {financeFormat({
+                          num: +(calculatedFinance?.financeAmount || 0),
+                          withoutCurrency: false,
+                        })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td fontSize={'lg'}>Sale Tax</Td>
+                      <Td fontSize={'lg'} isNumeric>
+                        {financeFormat({
+                          num: +(calculatedFinance?.totalTaxDollar || 0),
+                        })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>Other Fees</Td>
+                      <Td isNumeric>
+                        {financeFormat({ num: +(changes?.filing_fees || 0) })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>Upfront Payment</Td>
+                      <Td isNumeric>
+                        {financeFormat({ num: +(changes.down || 0) })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td></Td>
+                      <Td></Td>
+                    </Tr>
+                    <Tr>
+                      <Td>{`Total of ${changes.term} Loan Payments`}</Td>
+                      <Td isNumeric>
+                        {financeFormat({
+                          num: +(calculatedFinance?.totalLoanAmount || 0),
+                        })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td>Total Loan Interest</Td>
+                      <Td isNumeric>
+                        {financeFormat({
+                          num: +(calculatedFinance?.deferredPayment || 0),
+                        })}
+                      </Td>
+                    </Tr>
+                    <Tr>
+                      <Td fontSize={'2xl'}>Total Loan Cost</Td>
+                      <Td fontSize={'2xl'} isNumeric>
+                        {financeFormat({
+                          num: +(calculatedFinance?.totalCost || 0),
+                          withoutCurrency: false,
+                        })}
+                      </Td>
+                    </Tr>
+                  </Tbody>
+                </Table>
+              </Stack>
+              <PieChart
+                title={`Total Loan: ${+(calculatedFinance?.totalCost || 0)?.toFixed(
+                  2,
+                )}`}
+                data={{
+                  // selling + totalTaxDollar + filingFees + deferredPayment;
+                  labels: ['Auto Price', 'Tax', 'Charges', 'Interest'],
+                  datasets: [
+                    {
+                      label: 'Option 1',
+                      data: [
+                        +(changes?.selling_value || 0).toFixed(2),
+                        +(calculatedFinance?.totalTaxDollar || 0).toFixed(2),
+                        +(changes?.filing_fees || 0),
+                        +(calculatedFinance?.deferredPayment || 0).toFixed(2),
+                      ],
+                      backgroundColor: [
+                        colors.highContrast.primary,
+                        colors.highContrast.secondary,
+                        colors.highContrast.tertiary,
+                        colors.highContrast.quaternary,
+                      ],
+                    },
+                  ],
+                }}
+              />
+
+              <Box gridColumn={'1 / -1'}>
+                {/* {MemoizedSchedule} */}
+                {/* <RenderAmortizationSchedule chartId='printable-schedule'/> */}
+                {changes.sale_type === 'credit' && (
+                  <RenderAmortizationSchedule
+                    changes={changes}
+                    calculatedFinance={calculatedFinance}
+                    chartId="printableStackedBar"
+                  />
+                )}
+              </Box>
+            </Grid>
+            <ButtonGroup>
+              <Button
+                w="full"
+                onClick={() => {
+                  onClose();
+                  handleSubmit();
+                }}
+              >
+                Confirm
+              </Button>
+              <Button
+                w="full"
+                onClick={() => {
+                  const printArr = [
+                    'aboutDeal',
+                    'amortization-schedule',
+                    'printableStackedBar',
+                    'myChart',
+                  ];
+                  print({
+                    elementId: printArr,
+                  });
+                }}
+              >
+                Print
+              </Button>
+            </ButtonGroup>
+          </Stack>
+        </AlertDialog>
+      )}
+
+      <FormWrap
+        setChanges={setChanges}
+        changes={changes}
+        formType="new"
+        message={message || undefined}
+        title={`${changes.sale_type === 'credit' ? 'Credit' : 'Cash'} Deal`}
+        onSubmit={onSubmit}
+      >
+        <>
+          <div className={globals.no_print}>
+            <Stack spacing={{ base: 0, md: 4 }}>
+              {debug && (
+                <pre>
+                  {JSON.stringify(
+                    {
+                      changes,
+                      inventoryPrices,
+                      trades,
+                      cid,
+                      sid,
+                    },
+                    null,
+                    2,
+                  )}
+                </pre>
+              )}
+
+              <Stack
+                direction={{ base: 'column', md: 'row' }}
+                spacing={{ base: 0, md: 4 }}
+              >
+                <Tooltip
+                  label={`Toggle ${
+                    changes.sale_type === 'credit' ? 'cash' : 'credit'
+                  } sale`}
+                >
+                  <Button
+                    px={6}
+                    onClick={() => {
+                      setChanges({
+                        ...changes,
+                        term: changes.sale_type === 'credit' ? 0 : 12,
+                        sale_type:
+                          changes.sale_type === 'credit' ? 'cash' : 'credit',
+                        creditor: '',
+                        apr: 0,
+                        filing_fees: 0,
+                      });
+
+                      setCid('');
+                    }}
+                  >
+                    {changes.sale_type === 'credit' ? 'Credit' : 'Cash'}
+                  </Button>
+                </Tooltip>
+
+                <PersonSelector
+                  setPid={setPid}
+                  setAid={setAid}
+                  filter="account"
+                  pid={pid}
+                />
+              </Stack>
+
+              {aid && (
+                <Tabs>
+                  <TabList>
+                    {aid && <Tab>Account</Tab>}
+                    {pid && <Tab>Person</Tab>}
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel>{aid && <AccountCard id={aid} />}</TabPanel>
+                    <TabPanel>{pid && <PersonCard id={pid} />}</TabPanel>
+                  </TabPanels>
+                </Tabs>
+              )}
+
+              <Divider />
+
+              <Flex>
+                <InventorySelector setSelected={setIid} selected={iid || ''} />
+                <InventoryCard withAccounts={false} inventoryID={iid as string} />
+              </Flex>
+
+              <Divider />
+
+              <Stack spacing={{ base: 4, md: 6 }}>
+                <Stack
+                  direction={{ base: 'column', md: 'row' }}
+                  spacing={{ base: 0, md: 4 }}
+                  alignItems="center"
+                >
+                  {/* TODO: Selling value not updating between credit/cash deals */}
+                  <CurrencyInput
+                    formLabel="Selling Value"
+                    isInvalid={
+                      +changes.down > +changes.selling_value + +changes.saleTax
+                    }
+                    name={+changes.selling_value ?? 0}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, selling_value: valueAsNumber })
+                    }
+                  />
+                  <CurrencyInput
+                    isDisabled={
+                      changes.sale_type === 'cash' || +changes.selling_value === 0
+                    }
+                    formLabel="Down Payment"
+                    isInvalid={changes.down < 0}
+                    max={+changes.selling_value + +changes.saleTax ?? 0}
+                    name={+changes.down ?? 0}
+                    tooltip={{
+                      label: 'This is the total amount due for this cash deal.',
+                      position: 'top',
+                      disabled: changes.sale_type === 'credit',
+                    }}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, down: valueAsNumber })
+                    }
+                  />
+                  <CurrencyInput
+                    formLabel="Owed On Down"
+                    max={+changes.down}
+                    name={+changes.downOwed ?? 0}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, downOwed: valueAsNumber })
+                    }
+                  />
+                  {changes.sale_type === 'credit' && (
+                    <FormControl
+                      isRequired
+                      w={{ base: '30%', md: '100%', sm: '100%', xs: '100%' }}
+                    >
+                      <FormLabel>Term</FormLabel>
+                      <InputGroup>
+                        <NumberInput
+                          w={'full'}
+                          defaultValue={0}
+                          value={+changes.term}
+                          min={0}
+                          max={changes.sale_type === 'credit' ? 84 : 0}
+                          keepWithinRange
+                          onChange={(_valueAsString, valueAsNumber) => {
+                            if (valueAsNumber === 0) {
+                              setChanges({
+                                ...changes,
+                                sale_type: 'cash',
+                                term: 0,
+                              });
+                            } else {
+                              setChanges({ ...changes, term: valueAsNumber });
+                            }
+                          }}
+                        >
+                          <NumberInputField />
+                          <NumberInputStepper>
+                            <NumberIncrementStepper />
+                            <NumberDecrementStepper />
+                          </NumberInputStepper>
+                        </NumberInput>
+                        <InputRightAddon
+                          bg={'none'}
+                          border={'none'}
+                          cursor={'default'}
+                          userSelect={'none'}
+                        >
+                          Months
+                        </InputRightAddon>
+                      </InputGroup>
+                    </FormControl>
+                  )}
+                </Stack>
+                <Stack
+                  direction={{ base: 'column', md: 'row' }}
+                  spacing={{ base: 0, md: 4 }}
+                >
+                  <PercentageInput
+                    formLabel="State Tax"
+                    name={+changes.tax_state ?? 0}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, tax_state: valueAsNumber })
+                    }
+                  />
+                  <PercentageInput
+                    formLabel="City Tax"
+                    name={+changes.tax_city}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, tax_city: valueAsNumber })
+                    }
+                  />
+                  <PercentageInput
+                    formLabel="RTD Tax"
+                    name={+changes.tax_rtd ?? 0}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, tax_rtd: valueAsNumber })
+                    }
+                  />
+                  <PercentageInput
+                    formLabel="County Tax"
+                    name={+changes.tax_county ?? 0}
+                    onChange={(_valueAsString, valueAsNumber) =>
+                      setChanges({ ...changes, tax_county: valueAsNumber })
+                    }
+                  />
+                </Stack>
+
+                {/* Trades */}
+                <Stack
+                  direction={{ base: 'column', md: 'row' }}
+                  spacing={{ base: 0, md: 4 }}
+                  justifyItems={'center'}
+                  alignItems={'center'}
+                >
+                  <Stack flexDirection={'column'} gap={4}>
+                    <Button
+                      colorScheme={'blue'}
+                      disabled={trades.length >= 3}
+                      onClick={() => {
+                        setTrades([
+                          ...trades,
+                          {
+                            make: undefined,
+                            model: undefined,
+                            year: undefined,
+                            vin: undefined,
+                          },
+                        ]);
+                      }}
+                      w={'full'}
+                    >
+                      Add Trade
+                    </Button>
+                  </Stack>
+                  {trades.map((trade, index) => {
+                    return (
+                      <Stack
+                        justifyItems={'center'}
+                        alignItems={'center'}
+                        key={`trade-${index}`}
+                        direction={{
+                          base: trades.length > 1 ? 'column' : 'row',
+                          md: trades.length > 1 ? 'column' : 'row',
+                        }}
+                        spacing={{ base: 0, md: 4 }}
+                      >
+                        <FormControl
+                          isRequired
+                          isInvalid={
+                            !trade['make'] ||
+                            Object.keys(trades)
+                              .map((key) => trades[key].vin)
+                              .indexOf(trade.vin) !== index
+                          }
+                          display={'flex'}
+                          flexDirection={'column'}
+                        >
+                          <FormLabel>VIN</FormLabel>
+                          <Input
+                            placeholder="VIN"
+                            value={trade.vin}
+                            onChange={(e) => {
+                              const newTrades = [...trades];
+                              newTrades[index].vin = e.target.value;
+                              setTrades(newTrades);
+                            }}
+                          />
+                          <ButtonGroup w={'full'} my={2}>
+                            <Button
+                              w={'100%'}
+                              disabled={!trades[index].vin}
+                              onClick={() => {
+                                fetch(
+                                  `/api/inventory/${trades[index].vin}/vin`,
+                                ).then(async (res) => {
+                                  const data = await res.json();
+                                  if (data.error) {
+                                    setMessage(data.error);
+                                  } else {
+                                    // Update trades object
+                                    const newTrades = [...trades];
+                                    newTrades[index].make = data.vin.make;
+                                    newTrades[index].model = data.vin.model;
+                                    newTrades[index].year = data.vin.year;
+                                    setTrades(newTrades);
+                                  }
+                                });
+                              }}
+                            >
+                              Fetch
+                            </Button>
+                            {/* Remove trade */}
+                            <Button
+                              w={'50%'}
+                              onClick={() => {
+                                const newTrades = [...trades];
+                                newTrades.splice(index, 1);
+                                setTrades(newTrades);
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </ButtonGroup>
+                        </FormControl>
+                        <CurrencyInput
+                          formLabel="Trade Value"
+                          isInvalid={
+                            trades.reduce(
+                              (acc, trade) => acc + (trade.value ?? 0),
+                              0,
+                            ) +
+                              (+changes.down || 0) >
+                              Math.max(
+                                +changes.totalLoanAmount,
+                                +changes.totalOwed,
+                              ) || !trade.value
+                          }
+                          name={+(trade.value ?? 0)}
+                          onChange={(_valueAsString, valueAsNumber) => {
+                            const newTrades = [...trades];
+                            newTrades[index].value = valueAsNumber;
+                            setTrades(newTrades);
+                          }}
+                        />
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+
+                <Stack direction={{ base: 'column', lg: 'row' }}>
+                  {changes.sale_type === 'credit' && (
+                    <PersonSelector
+                      // isInvalid={typeof changes.creditor === 'undefined'}
+                      filter="creditor"
+                      pid={cid}
+                      onChange={(e: PersonCreditor) => {
+                        console.log('e', e);
+                        setChanges((changes) => ({
+                          ...changes,
+                          creditor: e.id,
+                          filing_fees: e.filing_fees,
+                          apr: e.apr,
+                        }));
+                      }}
+                      label={'Creditor'}
+                    />
+                  )}
+                  <PersonSelector
+                    filter="salesman"
+                    setPid={setSid}
+                    pid={sid}
+                    label={'Salesman'}
+                  />
+                  <FormControl isRequired>
+                    <FormLabel>Date Purchased</FormLabel>
+                    <Input
+                      type={'date'}
+                      value={changes.date}
+                      onChange={(e) => {
+                        setChanges({ ...changes, date: e.target.value });
+                      }}
+                    />
+                  </FormControl>
+
+                  {changes.sale_type == 'credit' && (
+                    <Flex
+                      // align rightmost
+                      justifyContent={'flex-end'}
+                      w={'100%'}
+                    >
+                      <FormControl w={'min-content'}>
+                        <FormLabel w={'max-content'}>Filing Fees</FormLabel>
+                        <Text>
+                          {financeFormat({ num: +changes.filing_fees || 0 })}
+                        </Text>
+                      </FormControl>
+                      <FormControl w={'min-content'}>
+                        <FormLabel>APR</FormLabel>
+                        <Text>{financeFormat({ num: +changes.apr || 0 })}</Text>
+                      </FormControl>
+                    </Flex>
+                  )}
+                </Stack>
+                <Divider />
+              </Stack>
+              <Stack
+                display={forms.length > 0 ? 'block' : 'none'}
+                direction={{ base: 'row', sm: 'column' }}
+                spacing={{ base: 2, md: 4 }}
+                w={'100%'}
+                verticalAlign={'center'}
+              >
+                <Heading as="h3">{forms.length > 0 && 'Forms'}</Heading>
+                <Stack
+                  direction={{ base: 'column', sm: 'row' }}
+                  spacing={{ base: 2, md: 4 }}
+                >
+                  <Button
+                    colorScheme="blue"
+                    variant="solid"
+                    h={'5ch'}
+                    minW={'max-content'}
+                    onClick={forms.length > 0 ? () => downloadZip(forms) : undefined}
+                  >
+                    {<FaFileDownload />}{' '}
+                    {
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: '3ch',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          // backgroundColor: "white",
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        Zip
+                      </span>
+                    }
+                  </Button>
+                  <Select placeholder="Select a form">
+                    {forms.map((form, index) => {
+                      const title = Object.keys(form)[0];
+                      const url = Object.values(form)[0];
+
+                      if (!url) {
+                        return <></>;
+                      }
+
+                      try {
+                        return (
+                          <option
+                            onClick={() => {
+                              const a = document.createElement('a');
+                              a.href = 'forms/filled/' + url;
+                              a.download = `${title}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                            }}
+                            key={index}
+                          >
+                            {title.split('-')[1].trim()}
+                          </option>
+                        );
+                      } catch (error) {
+                        console.error(error, { title, url, type: typeof url });
+                        return <></>;
+                      }
+                    })}
+                  </Select>
+                </Stack>
+              </Stack>
+              <Divider />
+              <AboutDeal />
+            </Stack>
+          </div>
+
+          {/* {MemoizedSchedule} */}
+          {changes.sale_type === 'credit' && (
+            <RenderAmortizationSchedule
+              changes={changes}
+              calculatedFinance={calculatedFinance}
+              chartId="amortizationSchedule"
+            />
+          )}
+
+          {/* <BarChart/> */}
+          {/*
+          {
+      label: "Dataset 1",
+      data: [300, 50, 100, 40, 120],
+      backgroundColor: ["#080705", "#40434e", "#702632", "#912f40", "#b33a4f"],
+    },
+      */}
+        </>
+      </FormWrap>
+    </Stack>
+  );
+}

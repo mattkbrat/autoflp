@@ -160,6 +160,17 @@ export default function Header({
               display: 'inline-block',
               width: '100%',
             }}
+            href={'/deal'}
+          >
+            Deal
+          </Link>
+        </ListItem>
+        <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
+          <Link
+            style={{
+              display: 'inline-block',
+              width: '100%',
+            }}
             href={'/map'}
           >
             Map

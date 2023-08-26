@@ -63,7 +63,7 @@ const defaultConfig = {
 
 function generateConfig(dataset: data, title: string, options: any = {}) {
   return {
-    type: 'bar' as keyof ChartTypeRegistry | 'line',
+    type: 'bar' as keyof ChartTypeRegistry || 'line',
     data: {
       labels: collapseArray(dataset?.labels || defaultConfig.data.labels),
       datasets: dataset?.datasets || defaultConfig.data.datasets,

@@ -30,6 +30,7 @@ import StackedBarChart from '@/components/Charts/StackedBar';
 import collapseArray from '@/utils/collapseArray';
 import { ChartType } from 'chart.js';
 import colors from '@/lib/colors';
+import useSchedule from '@/hooks/useSchedule';
 
 export function BusinessData({
   schedule,
@@ -87,7 +88,7 @@ export function BusinessData({
   );
 }
 
-export type defaultAmortizationSchedule = {
+export type DefaultAmortizationSchedule = {
   pmt: number;
   principal: number;
   annualRate: number;
@@ -106,7 +107,7 @@ function AmortizationSchedule({
   showBusinessData = true,
   chartId,
 }: {
-  defaultSchedule?: defaultAmortizationSchedule;
+  defaultSchedule?: DefaultAmortizationSchedule;
   defaultSimple?: boolean;
   headerComponent?: JSX.Element;
   id?: string;
@@ -118,59 +119,16 @@ function AmortizationSchedule({
 }) {
   const [showSchedule, setShowSchedule] = useState<boolean>(defaultShow);
   const [simple, setSimple] = useState<boolean>(defaultSimple);
-  const [schedule, setSchedule] = useState<ParsedAmortizationSchedule | undefined>(
-    undefined,
-  );
+  const schedule = useSchedule({
+    dealId: id,
+    defaultSchedule: dSchedule,
+  });
 
   const [withZeroPayments, setWithZeroPayments] = useState<boolean>(false);
 
   const defaultSchedule = dSchedule;
 
   const [loading, setLoading] = useState<boolean>(false);
-
-  useEffect(() => {
-    let body = {} as any;
-
-    if (!showSchedule) {
-      return;
-    }
-
-    async function fetchSchedule() {
-      try {
-        await fetch('/api/accounts/schedule?id=' + id, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: body,
-        }).then(async (res) => {
-          const data = await res.json();
-          if (data?.hasHistory) {
-            setShowSchedule(true);
-          }
-          setSchedule(data);
-        });
-      } catch (e) {
-        console.error('Error fetching schedule', e);
-        setSchedule(undefined);
-      }
-    }
-
-    if (defaultSchedule) {
-      body = JSON.stringify({
-        principal: +(defaultSchedule.principal || 0),
-        annualRate: +(defaultSchedule.annualRate || 0),
-        initialDate: new Date(defaultSchedule.startDate),
-        numberOfPayments: +(defaultSchedule.numberOfPayments || 0),
-        pmt: +(defaultSchedule.pmt || 0),
-        finance: defaultSchedule.finance,
-      });
-    } else if (typeof id === 'undefined') {
-      return;
-    }
-
-    fetchSchedule();
-  }, [id, defaultSchedule, showSchedule]);
 
   useEffect(() => {
     if (!schedule) {
@@ -413,7 +371,7 @@ function AmortizationSchedule({
                         'b YYYY',
                       )}
                   </Text>
-                  {!schedule?.hasHistory && showBusinessData && (
+                  {schedule && !schedule.hasHistory && showBusinessData && (
                     <BusinessData schedule={schedule} />
                   )}
 
@@ -578,69 +536,69 @@ function AmortizationSchedule({
           </TableContainer>
         )}
       </Stack>
-      {defaultWithChart && chartId && showSchedule && (
-        <StackedBarChart
-          title={`Amortization Schedule Chart`}
-          id={chartId}
-          data={{
-            // Labels are months
-            labels:
-              schedule?.schedule
-                ?.map((row) => {
-                  const dates = row.map((r) => formatDate(r.date, 'b YYYY'));
-                  return dates;
-                })
-                .reverse() || [],
-            datasets: [
-              {
-                label: 'Interest',
-                stack: 'Stack 0',
-                type: 'bar',
-                data: collapseArray(
-                  schedule?.schedule?.map((row) => {
-                    const interest = row.map((r) => r.interest);
-                    return interest.map((p) => Math.round(p * 100) / 100);
-                  }) || [],
-                ).reverse(),
-                backgroundColor: colors.highContrast.primary,
-                order: 1,
-              },
-              {
-                label: 'Principal',
-                stack: 'Stack 0',
-                type: 'bar',
-                data: collapseArray(
-                  schedule?.schedule?.map((row) => {
-                    const principal = row.map((r) => r.principal);
-                    // Round to 2 decimal places
-                    return principal.map((p) => Math.round(p * 100) / 100);
-                  }) || [],
-                ).reverse(),
-                backgroundColor: colors.highContrast.quaternary,
-                order: 1,
-              },
-              {
-                label: 'Balance',
-                type: 'Line' as ChartType,
-                data: collapseArray(
-                  schedule?.schedule?.map((row) => {
-                    const balance = row.map((r) => r.balance || 0);
-                    return balance.map((p) => Math.round(p * 100) / 100);
-                  }) || [],
-                ).reverse(),
-                backgroundColor: colors.highContrast.tertiary,
-                borderColor: colors.highContrast.tertiary,
-                yAxisID: 'axis-time',
-                width: 2,
-                z: 1,
-                fill: false,
-                overlayBars: true,
-                order: 0,
-              },
-            ],
-          }}
-        />
-      )}
+      {/*{chartId && showSchedule && (*/}
+      {/*  <StackedBarChart*/}
+      {/*    title={`Amortization Schedule Chart`}*/}
+      {/*    id={chartId}*/}
+      {/*    data={{*/}
+      {/*      // Labels are months*/}
+      {/*      labels:*/}
+      {/*        schedule?.schedule*/}
+      {/*          ?.map((row) => {*/}
+      {/*            const dates = row.map((r) => formatDate(r.date, 'b YYYY'));*/}
+      {/*            return dates;*/}
+      {/*          })*/}
+      {/*          .reverse() || [],*/}
+      {/*      datasets: [*/}
+      {/*        {*/}
+      {/*          label: 'Interest',*/}
+      {/*          stack: 'Stack 0',*/}
+      {/*          type: 'bar',*/}
+      {/*          data: collapseArray(*/}
+      {/*            schedule?.schedule?.map((row) => {*/}
+      {/*              const interest = row.map((r) => r.interest);*/}
+      {/*              return interest.map((p) => Math.round(p * 100) / 100);*/}
+      {/*            }) || [],*/}
+      {/*          ).reverse(),*/}
+      {/*          backgroundColor: colors.highContrast.primary,*/}
+      {/*          order: 1,*/}
+      {/*        },*/}
+      {/*        {*/}
+      {/*          label: 'Principal',*/}
+      {/*          stack: 'Stack 0',*/}
+      {/*          type: 'bar',*/}
+      {/*          data: collapseArray(*/}
+      {/*            schedule?.schedule?.map((row) => {*/}
+      {/*              const principal = row.map((r) => r.principal);*/}
+      {/*              // Round to 2 decimal places*/}
+      {/*              return principal.map((p) => Math.round(p * 100) / 100);*/}
+      {/*            }) || [],*/}
+      {/*          ).reverse(),*/}
+      {/*          backgroundColor: colors.highContrast.quaternary,*/}
+      {/*          order: 1,*/}
+      {/*        },*/}
+      {/*        {*/}
+      {/*          label: 'Balance',*/}
+      {/*          type: 'Line' as ChartType,*/}
+      {/*          data: collapseArray(*/}
+      {/*            schedule?.schedule?.map((row) => {*/}
+      {/*              const balance = row.map((r) => r.balance || 0);*/}
+      {/*              return balance.map((p) => Math.round(p * 100) / 100);*/}
+      {/*            }) || [],*/}
+      {/*          ).reverse(),*/}
+      {/*          backgroundColor: colors.highContrast.tertiary,*/}
+      {/*          borderColor: colors.highContrast.tertiary,*/}
+      {/*          yAxisID: 'axis-time',*/}
+      {/*          width: 2,*/}
+      {/*          z: 1,*/}
+      {/*          fill: false,*/}
+      {/*          overlayBars: true,*/}
+      {/*          order: 0,*/}
+      {/*        },*/}
+      {/*      ],*/}
+      {/*    }}*/}
+      {/*  />*/}
+      {/*)}*/}
     </Stack>
   );
 }

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { Button, HStack, Stack, useToast } from '@chakra-ui/react';
 import { account, person } from '@prisma/client';
-import { BasicTextInput } from '@/components/Inputs/BasicTextInput';
+import { TextInput } from '@/components/Inputs/TextInput';
 
 /*
 
@@ -60,7 +60,7 @@ function Account(props: {
   return (
     <Stack as={'form'} onSubmit={onSubmit} spacing={{ base: 4, md: 6 }} px={2}>
       <Stack direction={{ base: 'column', md: 'row' }}>
-        <BasicTextInput
+        <TextInput
           label={'Date of Birth'}
           defaultValue={'1970-01-01'}
           changes={changes}
@@ -68,7 +68,7 @@ function Account(props: {
           name={'date_of_birth'}
           isRequired
         />
-        <BasicTextInput
+        <TextInput
           label={'License Number'}
           defaultValue={'123456789'}
           changes={changes}
@@ -76,7 +76,7 @@ function Account(props: {
           name={'license_number'}
           isRequired
         />
-        <BasicTextInput
+        <TextInput
           label={'License Expiration'}
           defaultValue={new Date().toString()}
           changes={changes}
@@ -85,7 +85,7 @@ function Account(props: {
           isRequired
         />
       </Stack>
-      <BasicTextInput
+      <TextInput
         label={'Cosigner'}
         changes={changes}
         setChanges={setChanges}

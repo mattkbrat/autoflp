@@ -1,7 +1,13 @@
-import { person } from '@prisma/client';
+import { Person } from "@prisma/client";
 
 export function fullNameFromPerson(
-  person: person | null | undefined,
+  person: {
+    first_name?: string | null;
+    last_name?: string | null;
+    middle_initial?: string | null;
+    name_prefix?: string | null;
+    name_suffix?: string | null;
+  },
   format: 'firstLast' | 'lastFirst' = 'lastFirst',
   titleCase = true,
 ) {
@@ -47,9 +53,9 @@ export function fullNameFromPerson(
 
   if (titleCase) {
     return name
-      .split(' ')
-      .map((word) => word[0].toUpperCase() + word.slice(1))
-      .join(' ');
+      ?.split(' ')
+      ?.map((word) => word && word[0].toUpperCase() + word.slice(1))
+      ?.join(' ');
   }
 
   return name;
