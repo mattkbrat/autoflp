@@ -1,12 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-import { useRouter } from 'next/navigation';
-
-import { Button, HStack, Stack, useToast } from '@chakra-ui/react';
-import { account, person } from '@prisma/client';
+import { Button, Stack, useToast } from '@chakra-ui/react';
 import { TextInput } from '@/components/Inputs/TextInput';
+import { useState } from 'react';
+import { Account } from '@/types/prisma/accounts';
 
 /*
 
@@ -19,14 +16,10 @@ The account form should have the following fields:
 function Account(props: {
   defaultCollapsed?: boolean;
   redirectOnSubmit?: boolean;
-  editing: account;
+  editing: Account;
 }) {
-  const { defaultCollapsed = false, editing } = props;
-  const [changes, setChanges] = useState<Partial<account>>(editing);
-  const [message, setMessage] = useState<string>('');
-
-  const router = useRouter();
-
+  const { editing } = props;
+  const [changes, setChanges] = useState<Partial<Account>>(editing);
   const toast = useToast();
 
   const pid = changes.contact;

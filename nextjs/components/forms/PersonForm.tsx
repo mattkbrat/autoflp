@@ -1,16 +1,8 @@
 'use client';
 
-import React, { SetStateAction, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 
-import {
-  Box,
-  Button,
-  Heading,
-  HStack,
-  Stack,
-  StackDivider,
-  Text,
-} from '@chakra-ui/react';
+import { Button, Stack } from '@chakra-ui/react';
 import { TextInput } from '@/components/Inputs/TextInput';
 import { Person } from '@/types/prisma/person';
 
@@ -40,10 +32,10 @@ import { Person } from '@/types/prisma/person';
 const PersonForm = ({ editing }: { editing: Person }) => {
   const [changes, setChanges] = useState<Partial<Person>>(editing);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setChanges((prev: Partial<Person>) => ({ ...prev, [name]: value }));
-  };
+  // const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const { name, value } = e.target;
+  //   setChanges((prev: Partial<Person>) => ({ ...prev, [name]: value }));
+  // };
 
   const handleSubmit = (e: React.FormEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -62,14 +54,14 @@ const PersonForm = ({ editing }: { editing: Person }) => {
         <TextInput
           name="name_prefix"
           label="prefix"
-          changes={changes}
+          changes={changes || {}}
           setChanges={setChanges}
         />
         <TextInput
           isRequired
           name="first_name"
           label="first"
-          changes={changes}
+          changes={changes || {}}
           setChanges={setChanges}
         />
         <TextInput

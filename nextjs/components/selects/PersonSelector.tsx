@@ -35,7 +35,6 @@ function PersonSelector(props: {
 
   const isCreditor = filter === 'creditor';
   const isSalesman = filter === 'salesman';
-  const isAccount = filter === 'account';
 
   useEffect(() => {
     if (typeof props.people !== 'undefined') {

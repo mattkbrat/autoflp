@@ -1,5 +1,4 @@
 import { DefaultAmortizationSchedule } from '@/components/AmortizationSchedule';
-import { ScheduleType } from '@/pages/api/schedule';
 import { ParsedAmortizationSchedule } from '@/types/Schedule';
 import { useEffect, useRef, useState } from 'react';
 

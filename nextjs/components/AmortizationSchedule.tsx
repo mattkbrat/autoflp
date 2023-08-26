@@ -26,10 +26,6 @@ import { FinanceCalcResult, ParsedAmortizationSchedule } from '@/types/Schedule'
 import { BusinessData } from '@/types/BusinessData';
 import { print } from '@/utils/print';
 import { datePlusMonths } from '@/utils/date';
-import StackedBarChart from '@/components/Charts/StackedBar';
-import collapseArray from '@/utils/collapseArray';
-import { ChartType } from 'chart.js';
-import colors from '@/lib/colors';
 import useSchedule from '@/hooks/useSchedule';
 
 export function BusinessData({

@@ -77,16 +77,11 @@ export default function Header({
   searchOptions: SearchOption[];
 }) {
   const [scrolled, setScrolled] = useState(false);
-  const [hasInitialLoad, setHasInitialLoad] = useState(false);
   const [collapseNav, setCollapseNav] = useState(true);
 
   const { data: user, isLoading } = useSWR('/api/auth/session', fetcher, {
     refreshInterval: 1000 * 60, // 1 minute
   });
-
-  useEffect(() => {
-    setHasInitialLoad(!!user);
-  }, [user]);
 
   const isMobile = useIsMobile();
 
@@ -248,7 +243,7 @@ export default function Header({
       transition={'background-color 0.2s ease-in-out'}
       top={0}
       zIndex={1}
-      isLoaded={hasInitialLoad}
+      isLoaded={!isLoading}
     >
       <Box
         as={'header'}

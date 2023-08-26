@@ -1,8 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { withSessionRoute } from '@/utils/auth/withSession';
-import { getInventoryWithDeals } from '@/utils/prisma/inventory';
-import getPerson from '@/utils/prisma/person/getPerson';
-import getPeople from '@/utils/prisma/person/getPeople';
 import { getAccount, getAccounts } from '@/utils/prisma/account';
 
 const AccountHandler = async (req: NextApiRequest, res: NextApiResponse) => {

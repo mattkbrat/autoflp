@@ -43,15 +43,12 @@ import {
 import isDev from '@/lib/isDev';
 import AmortizationSchedule from '@/components/AmortizationSchedule';
 import { Deal } from '@/types/prisma/deals';
-import { formsType } from '@/types/formsType';
 import { FinanceCalcResult, FinanceCalcResultKeys } from '@/types/Schedule';
 import { datePlusMonths } from '@/utils/date';
 import financeCalc from '@/utils/finance/calc';
 import roundToPenny from '@/utils/finance/roundToPenny';
 import globals from 'styles/globals.module.css';
 import PersonSelector from '@/components/selects/PersonSelector';
-import AccountForm from '@/components/forms/AccountForm';
-import PersonForm from '@/components/forms/PersonForm';
 import InventoryCard from '@/components/display/InventoryCard';
 import CurrencyInput from '@/components/Inputs/CurrencyInput';
 import { PercentageInput } from '@/components/Inputs/PercentageInput';
@@ -60,13 +57,12 @@ import PieChart from '@/components/Charts/Pie';
 import colors from '@/lib/colors';
 import FormWrap from '@/components/FormWrap';
 import AlertDialog from '@/components/AlertDialog';
-import PersonCard from '../display/PersonCard';
 import AccountCard from '@/components/display/AccountCard';
 import InventorySelector from '../selects/InventorySelector';
-import { Person } from '@prisma/client';
 import { PersonCreditor } from '@/types/prisma/person';
 import { downloadZip } from '@/utils/formBuilder/downloadZip';
 import { Form } from '@/types/forms';
+import PersonCard from '@/components/display/PersonCard';
 
 const debug = isDev;
 
@@ -120,6 +116,11 @@ export function DealForm(props: { id: string }) {
     term: 12,
     date: new Date().toISOString().split('T')[0],
   } as Partial<Deal>);
+
+  const isCredit = useMemo(() => {
+    return changes.sale_type === 'credit';
+  }, [changes.sale_type]);
+
   const [aid, setAid] = useState<string | null>(null); // account id
   const [pid, setPid] = useState<string | null>(null); // person id
   const [iid, setIid] = useState<string | number | null>(null); // inventory id
@@ -162,6 +163,7 @@ export function DealForm(props: { id: string }) {
     down: 0,
     trading: null,
   });
+
   const [message, setMessage] = useState<string | null>(null);
 
   // const MemoizedSchedule = useMemo(() => {
@@ -221,19 +223,16 @@ export function DealForm(props: { id: string }) {
 
   useEffect(() => {
     const creditIsNumber = inventoryPrices?.credit && inventoryPrices.credit > 0;
-    const saleTypeIsCredit = changes.sale_type === 'credit';
 
     const selling_value =
-      saleTypeIsCredit && creditIsNumber
-        ? inventoryPrices.credit
-        : inventoryPrices.cash;
+      isCredit && creditIsNumber ? inventoryPrices.credit : inventoryPrices.cash;
 
     setChanges({
       ...changes,
       selling_value: +(selling_value || 0),
       down: inventoryPrices['down'],
     });
-  }, [changes.sale_type, inventoryPrices]);
+  }, [changes.sale_type, inventoryPrices, isCredit]);
 
   useEffect(() => {
     const totalTradeValue = trades.reduce((acc, trade) => {
@@ -353,8 +352,6 @@ export function DealForm(props: { id: string }) {
     }
 
     const direction = props.direction || { base: 'column', lg: 'row' };
-
-    const isCredit = changes.sale_type === 'credit';
 
     const metrics = [
       'cashBalanceIncludingTax',
@@ -481,8 +478,8 @@ export function DealForm(props: { id: string }) {
       };
     });
 
-    const monthlyPayment = +changes.monthlyPayment || 0;
-    const finance = +changes.totalLoanAmount;
+    // const monthlyPayment = +changes.monthlyPayment || 0;
+    // const finance = +changes.totalLoanAmount;
     const apr = +changes.apr || 0;
 
     if (!calculatedFinance) {

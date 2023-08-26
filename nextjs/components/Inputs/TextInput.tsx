@@ -9,7 +9,7 @@ import {
 } from '@chakra-ui/react';
 import formatPhoneNumber from '@/utils/format/formatPhoneNumber';
 import formatEmail, { emailRegexString } from '@/utils/format/formatEmail';
-import { anyObject } from '@/types/AnyObject';
+import { AnyObject } from 'chart.js/dist/types/basic';
 
 const anyStringRegexString = '.*';
 
@@ -35,8 +35,8 @@ export function TextInput(props: {
   name: string;
   value?: string;
   label?: string;
-  changes?: anyObject;
-  setChanges?: React.Dispatch<React.SetStateAction<anyObject>>;
+  changes?: AnyObject;
+  setChanges?: React.Dispatch<React.SetStateAction<AnyObject>>;
   isDisabled?: boolean;
   isRequired?: boolean;
   isInvalid?: boolean;
