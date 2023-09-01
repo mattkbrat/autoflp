@@ -63,35 +63,9 @@ import { PersonCreditor } from '@/types/prisma/person';
 import { downloadZip } from '@/utils/formBuilder/downloadZip';
 import { Form } from '@/types/forms';
 import PersonCard from '@/components/display/PersonCard';
+import formatInventory from '@/utils/format/formatInventory';
 
 const debug = isDev;
-
-const RenderAmortizationSchedule = ({
-  chartId,
-  changes,
-  calculatedFinance,
-}: {
-  chartId: string;
-  changes: any;
-  calculatedFinance: any;
-}) => {
-  return (
-    <AmortizationSchedule
-      defaultSchedule={{
-        principal: +(changes.totalLoanAmount ?? 0),
-        startDate:
-          typeof changes.date === 'string' ? new Date(changes.date) : new Date(),
-        numberOfPayments: +changes.term ?? 0,
-        annualRate: +changes.apr ?? 0,
-        pmt: +changes.monthlyPayment ?? 0,
-        finance: calculatedFinance,
-      }}
-      defaultShow={false}
-      withChart={true}
-      chartId={chartId}
-    />
-  );
-};
 
 /**
  * This page will be rendered at /deal
@@ -104,18 +78,31 @@ const RenderAmortizationSchedule = ({
  */
 export function DealForm(props: { id: string }) {
   const { id } = props;
-  const [changes, setChanges] = useState<Partial<Deal>>({
+  const [changes, setChanges] = useState<
+    Partial<Deal> & {
+      downOwed: number;
+      sale_type: 'cash' | 'credit';
+      salesman: string;
+      trade_value: number;
+      filing_fees: string;
+      totalCost: number;
+    }
+  >({
     id,
-    tax_city: 0,
-    tax_rtd: 0,
-    tax_county: 0,
-    tax_state: 2.9,
-    down: 0,
+    tax_city: '0',
+    tax_rtd: '0',
+    tax_county: '0',
+    tax_state: '2.9',
+    filing_fees: '0',
+    down: '0',
     downOwed: 0,
+    totalCost: 0,
     sale_type: 'credit',
-    term: 12,
+    term: '12',
     date: new Date().toISOString().split('T')[0],
-  } as Partial<Deal>);
+    salesman: '',
+    trade_value: 0,
+  });
 
   const isCredit = useMemo(() => {
     return changes.sale_type === 'credit';
@@ -126,6 +113,8 @@ export function DealForm(props: { id: string }) {
   const [iid, setIid] = useState<string | number | null>(null); // inventory id
   const [cid, setCid] = useState<string | null>(null); // Creditor ID
   const [sid, setSid] = useState<string | null>(null); // Salesperson ID
+
+  const [inventoryState, setInventoryState] = useState(1);
 
   const [calculatedFinance, setCalculatedFinance] =
     useState<FinanceCalcResult | null>(null);
@@ -153,15 +142,13 @@ export function DealForm(props: { id: string }) {
   >([]);
 
   const [inventoryPrices, setInventoryPrices] = useState<{
-    selling?: number;
-    trading?: number | null;
+    selling: number;
     credit?: number;
     cash?: number;
-    down?: number;
+    down: number;
   }>({
     selling: 0,
     down: 0,
-    trading: null,
   });
 
   const [message, setMessage] = useState<string | null>(null);
@@ -199,13 +186,21 @@ export function DealForm(props: { id: string }) {
   // ]);
 
   useEffect(() => {
-    setChanges({
-      ...changes,
-      account: aid,
-      inventory: iid,
-      salesman: sid,
-    });
-  }, [aid, iid, sid]);
+    const newChanges = changes;
+    if (aid) {
+      newChanges.account = aid;
+    }
+    if (iid) {
+      newChanges.inventoryId = iid.toString();
+    }
+    if (sid) {
+      newChanges.salesman = sid;
+    }
+
+    if (JSON.stringify(newChanges) !== JSON.stringify(changes)) {
+      setChanges(newChanges);
+    }
+  }, [changes, aid, iid, sid]);
 
   useEffect(() => {
     if (!cid) {
@@ -229,8 +224,8 @@ export function DealForm(props: { id: string }) {
 
     setChanges({
       ...changes,
-      selling_value: +(selling_value || 0),
-      down: inventoryPrices['down'],
+      cash: (selling_value || 0).toFixed(2),
+      down: (inventoryPrices.down || 0).toFixed(2),
     });
   }, [changes.sale_type, inventoryPrices, isCredit]);
 
@@ -246,7 +241,8 @@ export function DealForm(props: { id: string }) {
   }, [trades]);
 
   useEffect(() => {
-    if (changes.sale_type === 'credit' && changes.term === 0) {
+    if (changes.sale_type === 'credit' && changes.term === '0') {
+      console.log('changes.term', changes.term);
       setChanges({
         ...changes,
         sale_type: 'cash',
@@ -255,29 +251,35 @@ export function DealForm(props: { id: string }) {
 
     // Keep the down owed updated
 
-    const newDownOwed = Math.min(+changes.downOwed, +changes.down);
+    const newDownOwed = Math.min(+changes.downOwed, +inventoryPrices.down);
     if (newDownOwed !== +changes.downOwed) {
+      console.log('newDownOwed', newDownOwed);
       setChanges({
         ...changes,
         downOwed: newDownOwed,
       });
     }
 
-    const sellingValue = +changes.selling_value;
+    const sellingValue = +inventoryPrices.selling;
     const tradeValue = +changes.trade_value;
     let totalTaxPercent =
-      (+changes.tax_city +
-        +changes.tax_county +
-        +changes.tax_rtd +
-        +changes.tax_state) /
-      100;
+      // (+(changes.tax_city || 0) +
+      // +changes.tax_county +
+      // +changes.tax_rtd +
+      // +changes.tax_state) /
+      // 100;
+      +(changes.tax_state || 0) +
+      +(changes.tax_city || 0) +
+      +(changes.tax_county || 0) +
+      +(changes.tax_rtd || 0) / 100;
     totalTaxPercent = Math.round(totalTaxPercent * 1000) / 1000;
     const totalValue = (sellingValue - tradeValue) * (1 + totalTaxPercent);
 
-    if (changes.sale_type === 'cash' && changes.down !== totalValue) {
+    if (changes.sale_type === 'cash' && inventoryPrices.down !== totalValue) {
+      console.log('changes.sale_type', changes.sale_type);
       setChanges({
         ...changes,
-        down: totalValue,
+        down: totalValue.toFixed(2),
       });
     }
 
@@ -294,11 +296,11 @@ export function DealForm(props: { id: string }) {
     //     sale_type: "credit",
     //   });
     // }
-  }, [changes]);
+  }, [changes, inventoryPrices]);
 
   useEffect(() => {
     const date = changes.date;
-    if (!changes.selling_value || typeof date !== 'string') {
+    if (!inventoryPrices.selling || typeof date !== 'string') {
       return;
     }
 
@@ -306,33 +308,35 @@ export function DealForm(props: { id: string }) {
 
     const finance: FinanceCalcResult = financeCalc({
       tax: {
-        city: Number.isNaN(+changes.tax_city) ? 0 : +changes.tax_city,
-        rtd: Number.isNaN(+changes.tax_rtd) ? 0 : +changes.tax_rtd,
-        state: Number.isNaN(+changes.tax_state) ? 0 : +changes.tax_state,
-        county: Number.isNaN(+changes.tax_county) ? 0 : +changes.tax_county,
+        city: Number(changes.tax_city || 0),
+        rtd: Number(changes.tax_rtd || 0),
+        state: Number(changes.tax_state || 0),
+        county: Number(changes.tax_county || 0),
       },
       prices: {
-        selling: Number.isNaN(+changes.selling_value) ? 0 : +changes.selling_value,
-        down: Number.isNaN(+changes.down) ? 0 : +changes.down,
+        selling: Number.isNaN(+inventoryPrices.selling)
+          ? 0
+          : +inventoryPrices.selling,
+        down: Number.isNaN(+inventoryPrices.down) ? 0 : +inventoryPrices.down,
         trade: Number.isNaN(+changes.trade_value) ? 0 : +changes.trade_value, // TODO: add trade value to the form
       },
       creditor: {
-        term: +changes.term,
-        filingFees: Number.isNaN(+changes.filing_fees) ? 0 : +changes.filing_fees,
-        apr: Number.isNaN(+changes.apr) ? 10 : +changes.apr, // TODO: add apr to the form
+        term: Number(changes.term || 12),
+        filingFees: Number(changes.filing_fees || 0),
+        apr: Number(changes.apr || 0),
       },
       firstPayment: new Date(firstPaymentDate),
     });
 
-    setCalculatedFinance(finance);
-
-    setChanges({
-      ...changes,
-      ...finance,
-    });
+    if (calculatedFinance?.totalCost !== finance.totalCost) {
+      setCalculatedFinance(finance);
+      setChanges({
+        ...changes,
+        ...finance,
+      });
+    }
   }, [
-    changes.selling_value,
-    changes.down,
+    inventoryPrices,
     changes.term,
     changes.filing_fees,
     changes.apr,
@@ -342,6 +346,7 @@ export function DealForm(props: { id: string }) {
     changes.tax_county,
     changes.trade_value,
     changes.date,
+    changes,
   ]);
 
   const AboutDeal = (props: {
@@ -424,18 +429,18 @@ export function DealForm(props: { id: string }) {
       errors.push('Account required.');
     }
 
-    if (typeof changes.inventory !== 'string' || changes.inventory.length === 0) {
+    if (!changes.inventoryId) {
       if (typeof iid === 'undefined' || iid === null) {
         errors.push('Selling vehicle required.');
       } else {
         setChanges({
           ...changes,
-          inventory: iid,
+          inventoryId: iid.toString(),
         });
       }
     }
 
-    if (typeof changes.selling_value === 'undefined' || changes.selling_value <= 0) {
+    if (inventoryPrices.selling <= 0) {
       console.log('changes.totalCost', changes.totalCost);
       errors.push('Selling value required.');
     }
@@ -480,7 +485,7 @@ export function DealForm(props: { id: string }) {
 
     // const monthlyPayment = +changes.monthlyPayment || 0;
     // const finance = +changes.totalLoanAmount;
-    const apr = +changes.apr || 0;
+    const apr = Number(changes.apr || 0);
 
     if (!calculatedFinance) {
       setMessage('Error: Could not calculate finance.');
@@ -493,10 +498,10 @@ export function DealForm(props: { id: string }) {
       // match format yyyy-mm-dd
       date: changes.date as string,
       account: changes.account as string,
-      inventory: changes.inventory as string,
+      inventoryId: changes.inventoryId as string,
       creditor: changes.sale_type === 'credit' ? (changes.creditor as string) : null,
-      cash: changes.selling_value.toString(),
-      down: (changes.down || 0).toString(),
+      cash: inventoryPrices.selling.toString(),
+      down: (inventoryPrices.down || 0).toString(),
       apr: apr.toFixed(2),
       finance: calculatedFinance.financeAmount.toFixed(2),
       lien: (changes.sale_type === 'credit'
@@ -504,15 +509,15 @@ export function DealForm(props: { id: string }) {
         : 0
       ).toFixed(2),
       pmt: calculatedFinance.monthlyPayment.toFixed(2),
-      term: changes.term.toString(),
-      tax_state: (+changes.tax_state || 0).toFixed(2),
-      tax_city: (+changes.tax_city || 0).toFixed(2),
-      tax_rtd: (+changes.tax_rtd || 0).toFixed(2),
-      tax_county: (+changes.tax_county || 0).toFixed(2),
+      term: (changes.term || 0).toString(),
+      tax_state: (+(changes.tax_state || 0)).toFixed(2),
+      tax_city: (+(changes.tax_city || 0)).toFixed(2),
+      tax_rtd: (+(changes.tax_rtd || 0)).toFixed(2),
+      tax_county: (+(changes.tax_county || 0)).toFixed(2),
     };
 
     // console.table({ body })
-    fetch('/api/deals', {
+    fetch('/api/deal', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -654,7 +659,7 @@ export function DealForm(props: { id: string }) {
                     <Tr>
                       <Td>Upfront Payment</Td>
                       <Td isNumeric>
-                        {financeFormat({ num: +(changes.down || 0) })}
+                        {financeFormat({ num: +(inventoryPrices.down || 0) })}
                       </Td>
                     </Tr>
                     <Tr>
@@ -700,7 +705,7 @@ export function DealForm(props: { id: string }) {
                     {
                       label: 'Option 1',
                       data: [
-                        +(changes?.selling_value || 0).toFixed(2),
+                        +inventoryPrices.selling.toFixed(2),
                         +(calculatedFinance?.totalTaxDollar || 0).toFixed(2),
                         +(changes?.filing_fees || 0),
                         +(calculatedFinance?.deferredPayment || 0).toFixed(2),
@@ -719,11 +724,22 @@ export function DealForm(props: { id: string }) {
               <Box gridColumn={'1 / -1'}>
                 {/* {MemoizedSchedule} */}
                 {/* <RenderAmortizationSchedule chartId='printable-schedule'/> */}
-                {changes.sale_type === 'credit' && (
-                  <RenderAmortizationSchedule
-                    changes={changes}
-                    calculatedFinance={calculatedFinance}
-                    chartId="printableStackedBar"
+                {changes.sale_type === 'credit' && !!calculatedFinance && (
+                  <AmortizationSchedule
+                    defaultSchedule={{
+                      principal: +(changes.totalCost ?? 0),
+                      startDate:
+                        typeof changes.date === 'string'
+                          ? new Date(changes.date)
+                          : new Date(),
+                      numberOfPayments: +(changes.term || 0),
+                      annualRate: +(changes.apr || 0),
+                      pmt: +(changes.pmt || 0),
+                      finance: calculatedFinance,
+                    }}
+                    defaultShow={false}
+                    withChart={true}
+                    chartId={'deal-finance-chart'}
                   />
                 )}
               </Box>
@@ -800,12 +816,12 @@ export function DealForm(props: { id: string }) {
                     onClick={() => {
                       setChanges({
                         ...changes,
-                        term: changes.sale_type === 'credit' ? 0 : 12,
+                        term: (changes.sale_type === 'credit' ? 0 : 12).toFixed(0),
                         sale_type:
                           changes.sale_type === 'credit' ? 'cash' : 'credit',
                         creditor: '',
-                        apr: 0,
-                        filing_fees: 0,
+                        apr: '0',
+                        filing_fees: '0.00',
                       });
 
                       setCid('');
@@ -838,8 +854,20 @@ export function DealForm(props: { id: string }) {
 
               <Divider />
 
-              <Flex>
-                <InventorySelector setSelected={setIid} selected={iid || ''} />
+              <Flex alignItems={'center'}>
+                <Stack>
+                  <InventorySelector
+                    setPrices={setInventoryPrices}
+                    setSelected={setIid}
+                    selected={iid || ''}
+                    state={inventoryState}
+                  />
+                  <Button
+                    onClick={() => setInventoryState(inventoryState === 0 ? 1 : 0)}
+                  >
+                    {inventoryState === 0 ? 'Current Inventory' : 'All Inventory'}
+                  </Button>
+                </Stack>
                 <InventoryCard withAccounts={false} inventoryID={iid as string} />
               </Flex>
 
@@ -855,33 +883,38 @@ export function DealForm(props: { id: string }) {
                   <CurrencyInput
                     formLabel="Selling Value"
                     isInvalid={
-                      +changes.down > +changes.selling_value + +changes.saleTax
+                      +inventoryPrices.down >
+                      +inventoryPrices.selling + +changes.saleTax
                     }
-                    name={+changes.selling_value ?? 0}
+                    name={+(inventoryPrices?.selling ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, selling_value: valueAsNumber })
+                      setInventoryPrices({
+                        ...inventoryPrices,
+                        selling: valueAsNumber,
+                      })
                     }
                   />
                   <CurrencyInput
                     isDisabled={
-                      changes.sale_type === 'cash' || +changes.selling_value === 0
+                      changes.sale_type === 'cash' ||
+                      !inventoryPrices.selling ||
+                      +inventoryPrices.selling === 0
                     }
                     formLabel="Down Payment"
-                    isInvalid={changes.down < 0}
-                    max={+changes.selling_value + +changes.saleTax ?? 0}
-                    name={+changes.down ?? 0}
+                    max={+(inventoryPrices.selling || 0) + (+changes.saleTax || 0)}
+                    name={+(inventoryPrices.down ?? 0)}
                     tooltip={{
                       label: 'This is the total amount due for this cash deal.',
                       position: 'top',
                       disabled: changes.sale_type === 'credit',
                     }}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, down: valueAsNumber })
+                      setInventoryPrices({ ...inventoryPrices, down: valueAsNumber })
                     }
                   />
                   <CurrencyInput
                     formLabel="Owed On Down"
-                    max={+changes.down}
+                    max={+inventoryPrices.down}
                     name={+changes.downOwed ?? 0}
                     onChange={(_valueAsString, valueAsNumber) =>
                       setChanges({ ...changes, downOwed: valueAsNumber })
@@ -1047,7 +1080,7 @@ export function DealForm(props: { id: string }) {
                                 });
                               }}
                             >
-                              Fetch
+                              Lookup
                             </Button>
                             {/* Remove trade */}
                             <Button
@@ -1061,6 +1094,15 @@ export function DealForm(props: { id: string }) {
                               Remove
                             </Button>
                           </ButtonGroup>
+                          {trades[index].make && trades[index].model && (
+                            <Text>
+                              {formatInventory({
+                                make: trades[index].make,
+                                model: trades[index].model,
+                                year: trades[index].year,
+                              })}
+                            </Text>
+                          )}
                         </FormControl>
                         <CurrencyInput
                           formLabel="Trade Value"
@@ -1069,7 +1111,7 @@ export function DealForm(props: { id: string }) {
                               (acc, trade) => acc + (trade.value ?? 0),
                               0,
                             ) +
-                              (+changes.down || 0) >
+                              (+inventoryPrices.down || 0) >
                               Math.max(
                                 +changes.totalLoanAmount,
                                 +changes.totalOwed,
@@ -1217,13 +1259,13 @@ export function DealForm(props: { id: string }) {
           </div>
 
           {/* {MemoizedSchedule} */}
-          {changes.sale_type === 'credit' && (
-            <RenderAmortizationSchedule
-              changes={changes}
-              calculatedFinance={calculatedFinance}
-              chartId="amortizationSchedule"
-            />
-          )}
+          {/*{changes.sale_type === 'credit' && (*/}
+          {/*  <RenderAmortizationSchedule*/}
+          {/*    changes={changes}*/}
+          {/*    calculatedFinance={calculatedFinance}*/}
+          {/*    chartId="amortizationSchedule"*/}
+          {/*  />*/}
+          {/*)}*/}
 
           {/* <BarChart/> */}
           {/*

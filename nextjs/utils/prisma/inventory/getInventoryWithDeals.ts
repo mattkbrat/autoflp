@@ -2,12 +2,16 @@ import prisma from '@/lib/prisma';
 
 const getInventoryByIdWithDeals = async ({
   inventoryId,
+  vin
 }: {
-  inventoryId: string;
+  inventoryId?: string;
+  vin?: string;
 }) => {
   return prisma.inventory.findUnique({
-    where: {
+    where: inventoryId ? {
       id: inventoryId,
+    } : {
+      vin: vin,
     },
     include: {
       deal: {

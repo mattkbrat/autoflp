@@ -18,7 +18,7 @@ const IndividualAccountPage = ({
     return <Heading>Account not found</Heading>;
   }
   const fullName = fullNameFromPerson(account.person);
-  const address = addressFromPerson(account.person);
+  const address = addressFromPerson({person: account.person});
 
   return (
     <>

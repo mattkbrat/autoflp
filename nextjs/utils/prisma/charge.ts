@@ -1,8 +1,4 @@
-import prisma from './prisma';
-import generateUUID from 'lib/generateUUID';
-import { AsyncReturnType } from 'types/AsyncReturnType';
-
-import { deal_charge, default_charge } from '@prisma/client';
+import prisma from '@/lib/prisma';
 
 /**
  * Gets the default charges for a creditor.
@@ -20,21 +16,17 @@ async function getAllCreditorDefaultCharges({ creditor }: { creditor: string }) 
       .then((creditor) => creditor?.business_name as string);
   }
 
-  const creditor_charges = await prisma.default_charge.findMany({
+  return prisma.defaultCharge.findMany({
     where: {
       creditor,
     },
     include: {
-      charge_chargeTodefault_charge: true,
+      charge_default_charge_chargeTocharge: true,
     },
   });
-
-  return creditor_charges;
 }
-
-async function createDealCharge
 
 type AllCreditorsGetterType = typeof getAllCreditorDefaultCharges;
 
-export { getAllCreditorDefaultCharges, createDealCharge };
+export { getAllCreditorDefaultCharges };
 export type { AllCreditorsGetterType };

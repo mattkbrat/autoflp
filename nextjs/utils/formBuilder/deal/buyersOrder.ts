@@ -1,7 +1,6 @@
 import { randomInt } from 'crypto';
 
 import {
-  addressFromPerson,
   fullNameFromPerson,
   generateOutputFilename,
   getBusinessData,
@@ -14,6 +13,7 @@ import financeCalc from '@/utils/finance/calc';
 import formatDate from '@/utils/date/format';
 import { getDealsWithRelevant } from '@/utils/prisma/deal';
 import { generate } from '@/utils/formBuilder';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
 
 const businessData = getBusinessData();
 const formName: Form = 'Buyers Order';
@@ -99,10 +99,10 @@ function buyersOrderDataCompiler(deal: DealWithRelevant) {
     'Space 1', // Extra Space
     'Space 2', // Extra Space
     randomInt(100000, 999999).toString(), // Contract Number // TODO: Make this a real contract number
-    deal.inventory.color, // Color
-    deal.inventory.make, // Make
-    +deal.inventory.year, // Year
-    // , deal.inventory.model // Model
+    deal.inventory.color || ' ', // Color
+    deal.inventory.make || ' ', // Make
+    +deal.inventory.year || ' ', // Year
+    deal.inventory.model, // Model
     deal.inventory.vin, // VIN
     customerFullName, // Customer Name
     deal.Account.license_number, // DL

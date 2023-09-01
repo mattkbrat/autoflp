@@ -1,5 +1,4 @@
 import {
-  addressFromPerson,
   fullNameFromPerson,
   generateOutputFilename,
   processArray,
@@ -8,6 +7,7 @@ import generate from '../generate';
 import { Form } from '@/types/forms';
 import { Deal, DealWithRelevant } from '@/types/prisma/deals';
 import formatDate from '@/utils/date/format';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import getDealById from '@/utils/prisma/deal/getDealById';
 
 const formName: Form = 'Cover';

@@ -10,10 +10,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 const InventoryCard = ({
   inventoryID,
+  idType = 'vin',
   inventory: defaultInventory,
   withAccounts = true,
 }: {
   inventoryID?: string | null;
+  idType?: 'vin' | 'id';
   inventory?: InventoryWithDeals;
   withAccounts?: boolean;
 }) => {

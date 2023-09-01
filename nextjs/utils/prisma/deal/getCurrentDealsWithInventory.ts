@@ -14,7 +14,7 @@ const getCurrentDealsWithInventory = ({
 
   return prisma.deal.findMany({
     where: {
-      inventory_id: inventory,
+      inventoryId: inventory,
       state: 1,
       id: {
         notIn: exclude,

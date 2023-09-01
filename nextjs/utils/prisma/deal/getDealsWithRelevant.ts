@@ -27,18 +27,7 @@ const getDealsWithRelevant = async ({
       },
       Account: {
         include: {
-          person: {
-            select: {
-              first_name: true,
-              last_name: true,
-              middle_initial: true,
-              name_suffix: true,
-              name_prefix: true,
-              id: true,
-              phone_primary: true,
-              email_primary: true,
-            },
-          },
+          person: true
         },
       },
       // payment: true,

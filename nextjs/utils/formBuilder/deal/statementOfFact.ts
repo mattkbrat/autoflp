@@ -8,13 +8,13 @@ import getDealById from '@/utils/prisma/deal/getDealById';
 
 const formName: Form = 'Down Payment Statement of Fact';
 
-function statementOfFactCompiler(deal: dealByIdType) {
+function statementOfFactCompiler(deal: DealWithRelevant) {
   if (typeof deal === 'undefined') {
     throw 'Must provide either "dealId" or "fullDeal"';
   }
 
   if (deal === null || deal.Account === null) {
-    throw 'Cover requires deal.';
+    throw 'Statement of requires deal.';
   }
 
   return processArray([

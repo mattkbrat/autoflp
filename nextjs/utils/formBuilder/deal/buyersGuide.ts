@@ -1,13 +1,12 @@
 import { generateOutputFilename, getBusinessData, processArray } from '../functions';
 import generate from '../generate';
-import { dealById, dealByIdType } from 'lib/prisma/deals';
-
-import { deal } from '@prisma/client';
+import { DealWithRelevant } from '@/types/prisma/deals';
+import getDealById from '@/utils/prisma/deal/getDealById';
 
 const businessData = getBusinessData();
 const formName = 'Buyers Guide';
 
-function buyersGuideDataCompiler(deal: dealByIdType) {
+function buyersGuideDataCompiler(deal: DealWithRelevant) {
   if (typeof deal === 'undefined') {
     return [];
   }
@@ -29,8 +28,8 @@ async function generateBuyersGuide({
   fullDeal,
   output,
 }: {
-  dealId?: deal['id'];
-  fullDeal?: dealByIdType;
+  dealId?: DealWithRelevant['id'];
+  fullDeal?: DealWithRelevant;
   output?: string;
 }) {
   try {
@@ -38,7 +37,7 @@ async function generateBuyersGuide({
       if (typeof dealId === 'undefined') {
         throw 'Must provide either "dealId" or "fullDeal"';
       }
-      fullDeal = await dealById(dealId);
+      fullDeal = await getDealById(dealId);
     }
 
     const appFormObj = buyersGuideDataCompiler(fullDeal);

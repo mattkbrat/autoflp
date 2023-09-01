@@ -1,13 +1,8 @@
-import prisma from '@/lib/prisma';
+import getDealsWithRelevant from './getDealsWithRelevant';
 
-const getDealWithPayments = ({ deal }: { deal: string }) => {
-  return prisma.deal.findUnique({
-    where: {
-      id: deal,
-    },
-    include: {
-      payments: true,
-    },
+const getDealWithPayments = async ({ deal }: { deal: string }) => {
+  return getDealsWithRelevant({ id: deal }).then((deals) => {
+    return deals[0];
   });
 };
 

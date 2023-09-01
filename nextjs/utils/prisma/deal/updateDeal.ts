@@ -8,7 +8,7 @@ const updateDeal = async ({ id, data }: { id: string; data: Partial<Deal> }) => 
     },
     include: {
       inventory: true,
-      account: {
+      Account: {
         select: {
           person: true,
         },
@@ -17,3 +17,5 @@ const updateDeal = async ({ id, data }: { id: string; data: Partial<Deal> }) => 
     data,
   });
 };
+
+export default updateDeal;

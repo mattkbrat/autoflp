@@ -30,17 +30,17 @@ const createDealSalesman = async ({
   //   },
   // });
 
-  return prisma.deal_salesman.upsert({
+  return prisma.dealSalesman.upsert({
     where: {
-      deal_id_salesman_id: {
-        deal_id: deal.id,
-        salesman_id: salesman,
+      deal_salesman: {
+        deal: deal.id,
+        salesman: salesman,
       },
     },
     update: {},
     create: {
-      deal_id: deal.id,
-      salesman_id: salesman,
+      deal: deal.id,
+      salesman: salesman,
       id: randomUUID(),
     },
   });

@@ -1,5 +1,4 @@
 import {
-  addressFromPerson,
   fullNameFromPerson,
   generateOutputFilename,
   getBusinessData,
@@ -12,6 +11,7 @@ import { datePlusMonths } from '@/utils/date';
 import financeCalc from '@/utils/finance/calc';
 import getDealById from '@/utils/prisma/deal/getDealById';
 import formatDate from '@/utils/date/format';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
 
 const businessData = getBusinessData();
 const formName: Form = 'Sales Tax Receipt New';
@@ -24,15 +24,27 @@ function salesTaxReceiptDataCompiler(deal: DealWithRelevant) {
   if (deal === null || deal.Account === null) {
     throw `${formName} requires deal`;
   }
-  const trades = deal.dealTrades.map((trade) => {
-    return {
-      year: trade.inventory.year,
-      make: trade.inventory.make,
-      model: trade.inventory.model,
-      vin: trade.vin,
-      value: trade.value,
+
+  // Prevent index out of bounds
+  const trades: {
+    year?: string;
+    make?: string;
+    model?: string;
+    vin?: string;
+    value?: string;
+  }[] = [{}, {}, {}];
+
+  deal.dealTrades.map((trade, n) => {
+    trades[n] = {
+      year: trade.inventory.year?.toString() ?? "",
+      make: trade.inventory.make ?? "",
+      model: trade.inventory.model ?? "",
+      vin: trade.vin ?? "",
+      value: trade.value ?? "0.00",
     };
   });
+
+  console.log(trades);
 
   const totalTradeValue = trades.reduce(
     (acc, trade) => acc + +(trade.value || 0),
@@ -41,13 +53,6 @@ function salesTaxReceiptDataCompiler(deal: DealWithRelevant) {
 
   const date = datePlusMonths(deal.date, 1);
   const customerFullName = fullNameFromPerson(deal.Account.person);
-
-  const tradeYears = trades
-    .map((trade) => +trade.year.toString().slice(-2))
-    .join(', ');
-  const tradeMakes = trades.map((trade) => trade.make).join(', ');
-  const tradeVins = trades.map((trade) => trade.vin.slice(-6)).join(', ');
-  const tradeModels = trades.map((trade) => trade.model).join(', ');
 
   const filingFees = deal.dealCharges.filter(
     (charge) => charge.charges?.name === 'Filing Fee',
@@ -98,14 +103,14 @@ function salesTaxReceiptDataCompiler(deal: DealWithRelevant) {
     deal.inventory?.make,
     deal.inventory?.model,
     deal.inventory?.vin,
-    tradeYears[0],
-    tradeMakes[0],
-    tradeVins[0],
-    tradeModels[0],
-    tradeYears[1],
-    tradeMakes[1],
-    tradeVins[1],
-    tradeModels[1],
+    trades[0].year || "",
+    trades[0].make || "",
+    trades[0].vin || "",
+    trades[0].model || "",
+    trades[1]?.year || "",
+    trades[1].make,
+    trades[1].vin || "",
+    trades[1].model || "",
     customerFullName,
     customerAddress.full,
     businessData.salesTaxNumber,

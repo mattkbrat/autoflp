@@ -1,6 +1,17 @@
-import { person } from '@prisma/client';
+import { Person } from '@/types/prisma/person';
 
-export function addressFromPerson(person: person | null) {
+export function addressFromPerson({
+  person,
+}: {
+  person?: {
+    address_1?: string | null;
+    address_2?: string | null;
+    address_3?: string | null;
+    city?: string | null;
+    state_province?: string | null;
+    zip_postal?: string | null;
+  } | null;
+}) {
   const res = {
     full: '',
     street: '',
@@ -10,7 +21,9 @@ export function addressFromPerson(person: person | null) {
     cityStateZip: '',
   };
 
-  if (person === null || typeof person === undefined) return res;
+  if (person === null || typeof person === undefined) {
+    throw new Error('Must provide a person');
+  }
 
   const address1 = person?.address_1 ?? '';
   const address2 = person?.address_2 ?? '';

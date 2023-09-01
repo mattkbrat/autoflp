@@ -1,14 +1,14 @@
 import { Inventory } from '@/types/prisma/inventory';
 
 export default function formatInventory(
-  inventory: NonNullable<Inventory> | undefined,
+  inventory: NonNullable<Partial<Inventory>> | undefined,
   titleCase = true,
 ) {
   if (inventory === undefined) {
     return '';
   }
 
-  let { make, year, color, vin } = inventory;
+  let { make, model, year, color, vin } = inventory;
 
   if (!make || make.toLowerCase() === 'none') {
     make = '';
@@ -24,9 +24,9 @@ export default function formatInventory(
     color = '';
   }
 
-  vin = vin.slice(-4);
+  vin = vin?.slice(-4) || '';
 
-  const inv = `${color} '${year} ${make} ${vin}`.trim();
+  const inv = `${color} ${year ? `'${year}` : ''} ${make} ${model} ${vin}`.trim();
 
   if (titleCase) {
     return inv

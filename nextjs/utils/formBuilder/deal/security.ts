@@ -1,5 +1,4 @@
 import {
-  addressFromPerson,
   fullNameFromPerson,
   generateOutputFilename,
   getBusinessData,
@@ -12,6 +11,7 @@ import { datePlusMonths } from '@/utils/date';
 import financeCalc from '@/utils/finance/calc';
 import formatDate from '@/utils/date/format';
 import getDealById from '@/utils/prisma/deal/getDealById';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
 
 const businessData = getBusinessData();
 let formName: Form = 'Security';

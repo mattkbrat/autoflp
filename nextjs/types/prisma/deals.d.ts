@@ -6,7 +6,7 @@ import getDealWithPayments from '@/utils/prisma/deal/getDealWithPayments';
 
 export type DealsWithRelevant = AsyncReturnType<typeof getDealsWithRelevant>;
 export type DealWithRelevant = DealsWithRelevant[number];
-export type Deal = AsyncReturnType<typeof getDeal>;
+export type Deal = NonNullable<AsyncReturnType<typeof getDeal>>;
 
 export type SimpleDeal = {
   formattedInventory?: string;

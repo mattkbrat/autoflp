@@ -16,7 +16,15 @@ const InventoryWithDealsHandler = async (
     return res.status(400).json({ message: 'Bad Request' });
   }
 
-  return res.send(await getInventoryWithDeals({ inventoryId: id }));
+  const idIsVin = id.length === 17;
+
+  console.log(idIsVin);
+
+  return res.send(await getInventoryWithDeals(
+    idIsVin ? { vin: id } :
+    { inventoryId: id}
+    
+    ));
 };
 
 export default withSessionRoute(InventoryWithDealsHandler);

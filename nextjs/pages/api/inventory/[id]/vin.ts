@@ -109,35 +109,28 @@ const InventoryByVinHandler = async (req: NextApiRequest, res: NextApiResponse) 
     return res.status(400).json({ message: 'Bad Request' });
   }
 
-  const no = req.query.vin;
-  if (typeof no !== 'string') {
-    res.status(400).json({
+  const vinQuery = req.query.vin;
+
+  const fetchedVin = await fetchNHTSA(typeof vinQuery === 'string' ? vinQuery : vin);
+  if (fetchedVin.selected === undefined) {
+    return res.status(400).json({
       error: 'Invalid VIN number',
     });
-  } else {
-    const fetchedVin = await fetchNHTSA(no);
-    if (fetchedVin.selected === undefined) {
-      res.status(400).json({
-        error: 'Invalid VIN number',
-      });
-      return;
-    }
-    res.status(200).json({
-      vin: {
-        make: fetchedVin.selected['Make'],
-        model: fetchedVin.selected['Model'],
-        year: fetchedVin.selected['Model Year']
-          ? fetchedVin.selected['Model Year'].toString()
-          : null,
-        // type: fetchedVin.selected['Vehicle Type'],
-        typeSimple: fetchedVin.selected['Vehicle Type - Simple'],
-        fuel: fetchedVin.selected['Fuel Type - Primary'],
-        cwt: fetchedVin.selected['Class'],
-      },
-      all: fetchedVin.all,
-    });
   }
-  return;
+  return res.status(200).json({
+    vin: {
+      make: fetchedVin.selected['Make'],
+      model: fetchedVin.selected['Model'],
+      year: fetchedVin.selected['Model Year']
+        ? fetchedVin.selected['Model Year'].toString()
+        : null,
+      // type: fetchedVin.selected['Vehicle Type'],
+      typeSimple: fetchedVin.selected['Vehicle Type - Simple'],
+      fuel: fetchedVin.selected['Fuel Type - Primary'],
+      cwt: fetchedVin.selected['Class'],
+    },
+    all: fetchedVin.all,
+  });
 };
 
 export default withSessionRoute(InventoryByVinHandler);

@@ -56,3 +56,5 @@ const createDealCharge = ({
     },
   });
 };
+
+export default createDealCharge;

@@ -1,3 +1,4 @@
+import financeFormat from '../finance/format';
 import send from './send';
 import handleUrl from '@/utils/handleUrl';
 

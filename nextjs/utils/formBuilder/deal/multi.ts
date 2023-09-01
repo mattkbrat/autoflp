@@ -9,19 +9,18 @@ import generateOneAndTheSame from './oneAndTheSame';
 import generateSalesTaxReceipt from './salesTaxReceiptNew';
 import generateSecurity from './security';
 import generateStatementOfFact from './statementOfFact';
-import { dealById } from 'lib/prisma/deals';
-import { forms } from 'types/forms';
-
-import { deal } from '@prisma/client';
+import { Form } from '@/types/forms';
+import { DealWithRelevant } from '@/types/prisma/deals';
+import { getDealsWithRelevant } from '@/utils/prisma/deal';
 
 async function generateMultipleDealForms({
   forms,
   dealId,
 }: {
-  forms: forms[];
-  dealId: deal['id'];
+  forms: Form[];
+  dealId: DealWithRelevant['id'];
 }) {
-  const fullDeal = await dealById(dealId);
+  const fullDeal = (await getDealsWithRelevant({ id: dealId }))[0];
   const results: {
     [key: string]: false | string | Blob;
   }[] = [];

@@ -1,15 +1,15 @@
-import { addressFromPerson, fullNameFromPerson, processArray } from '../functions';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
+import { fullNameFromPerson, processArray } from '../functions';
 import generateOutputFilename from '../functions/generateOutputFilename';
 import generate from '../generate';
-import { dealById, dealByIdType } from 'lib/prisma/deals';
-
-import { deal } from '@prisma/client';
+import { DealWithRelevant } from '@/types/prisma/deals';
+import getDealById from '@/utils/prisma/deal/getDealById';
 
 const formName = `Application for Title andor Registration 031522`;
 
 const dealerID = process.env.DEALER_ID;
 
-function appFormBuilder(deal: dealByIdType) {
+function appFormBuilder(deal: DealWithRelevant) {
   if (typeof deal === 'undefined') {
     throw 'Must provide a deal';
   }
@@ -62,8 +62,8 @@ async function generateApplicationForTitleForm({
   fullDeal,
   output,
 }: {
-  dealId?: deal['id'];
-  fullDeal?: dealByIdType;
+  dealId?: DealWithRelevant['id'];
+  fullDeal?: DealWithRelevant;
   output?: string;
 }) {
   try {
@@ -71,15 +71,13 @@ async function generateApplicationForTitleForm({
       if (typeof dealId === 'undefined') {
         throw new Error('Must provide either "dealId" or "fullDeal"');
       }
-      fullDeal = await dealById(dealId);
+      fullDeal = await getDealById(dealId);
     }
 
     const appFormObj = appFormBuilder(fullDeal);
 
-    if (
-      fullDeal?.Account?.person === null ||
-      typeof fullDeal?.Account?.person === 'undefined'
-    ) {
+    const person = fullDeal?.Account?.person;
+    if (!person || typeof fullDeal?.Account?.person === 'undefined') {
       throw new Error('Must have a person associated with the deal');
     }
 
@@ -87,7 +85,7 @@ async function generateApplicationForTitleForm({
       const generatedOutput = generateOutputFilename({
         deal: fullDeal,
         form: formName,
-        person: fullDeal?.Account?.person,
+        person: person,
       });
 
       if (Array.isArray(generatedOutput)) {

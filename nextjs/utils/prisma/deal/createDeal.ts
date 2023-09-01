@@ -1,10 +1,6 @@
 import prisma from '@/lib/prisma';
 
-import { inventory, salesman } from '@prisma/client';
-import {
-  createDealCharge,
-  getAllCreditorDefaultCharges,
-} from '@/utils/prisma/charge';
+import { getAllCreditorDefaultCharges } from '@/utils/prisma/charge';
 import { Deal } from '@/types/prisma/deals';
 import getDeal from '@/utils/prisma/deal/getDeal';
 import { getAccount } from '@/utils/prisma/account';
@@ -16,7 +12,12 @@ import {
   createTrade,
   getInventory,
 } from '@/utils/prisma/inventory';
-import { closeDeals, getCurrentDealsWithInventory } from '@/utils/prisma/deal';
+import { closeDeals, createDealSalesman, getCurrentDealsWithInventory } from '@/utils/prisma/deal';
+import { Inventory } from '@/types/prisma/inventory';
+import { Salesman } from '@/types/prisma/person';
+import createDealCharge from '@/utils/prisma/charge/createDealCharge';
+import { generate } from '@/utils/formBuilder';
+import { randomUUID } from 'crypto';
 
 const createDeal = async ({
   deal,
@@ -24,12 +25,12 @@ const createDeal = async ({
   salesmen,
 }: {
   deal: Deal;
-  trades?: inventory[];
-  salesmen?: salesman[];
+  trades?: Inventory[];
+  salesmen?: Salesman[];
 }) => {
   const existingDeals = (
     await getCurrentDealsWithInventory({
-      inventory: deal.inventory_id,
+      inventory: deal.inventoryId,
       exclude: [deal.id],
     })
   ).map((deal) => deal.id);
@@ -42,114 +43,182 @@ const createDeal = async ({
 
   const exists = await getDeal(deal.id);
 
-  const transaction = await prisma.$transaction([
-    exists
-      ? prisma.deal.update({
-          where: {
-            id: deal.id,
-          },
-          data: { ...deal },
-          include: {
-            inventory: {
-              select: {
-                vin: true,
-              },
-            },
-          },
-        })
-      : prisma.deal.create({
-          data: { ...deal },
-        }),
+  console.log(deal);
 
-    // prisma.deal.upsert({
-    //   where: {
-    //     id: deal.id,
-    //   },
-    //   update: {...deal},
-    //   create: {...deal},
-    // }),
+  const inventoryIdIsVin = deal.inventoryId.length === 17;
 
-    prisma.inventory.update({
+  const dealId = randomUUID();
+
+  const transaction = await prisma.$transaction( async (tx) => {
+    const dealTransaction = await tx.deal.upsert({
       where: {
-        vin: deal.inventory_id,
+        date_account_inventoryId: {
+          date: deal.date,
+          account: deal.account,
+          inventoryId: deal.inventoryId,
+        },
       },
+      update: { ...deal },
+      create: { ...deal, id: dealId},
+      include: {
+        inventory: true,
+        Account: {
+          include: {
+            person: true,
+          },
+        },
+      },
+    });
+
+    const inventoryTransaction = await tx.inventory.update({
+      where: inventoryIdIsVin
+        ? { vin: deal.inventoryId }
+        : {
+            id: deal.inventoryId,
+          },
       data: {
         state: 0,
       },
-    }),
-  ]);
+    });
 
-  if (Array.isArray(trades)) {
-    for (const trade of trades) {
-      try {
-        const inventory = trade;
+    // Delete existing trades in the case of an updated deal not having the same trade line.
+    await tx.dealTrade.deleteMany({
+      where: {
+        deal: dealTransaction.id,
+      },
+    });
 
-        const tradeValue = inventory.cash || inventory.credit || '0';
-
-        inventory.cash = '0';
-        inventory.credit = '0';
-
-        await createInventory({ inventory: trade });
-
-        await createTrade({
-          deal: deal.id,
-          vin: inventory.vin,
-          value: tradeValue,
-        });
-      } catch (error) {
-        console.error(error);
-        throw 'Error creating deal trade';
+    if (Array.isArray(trades)) {
+      for (const trade of trades) {
+        try {
+          const inventory = trade;
+  
+          if (!inventory) {
+            continue;
+          }
+  
+          const tradeValue = inventory.cash || inventory.credit || '0';
+  
+          inventory.cash = '0';
+          inventory.credit = '0';
+  
+          await tx.dealTrade.upsert({
+            where: {
+              deal_vin: {
+                deal: dealTransaction.id,
+                vin: inventory.vin,        
+              }
+            },
+            update: {
+              value: (+tradeValue).toFixed(2),
+            },
+            create: {
+              id: randomUUID(),
+              deal: dealTransaction.id,
+              vin: inventory.vin,
+              value: (+tradeValue).toFixed(2),
+            },
+          });
+        } catch (error) {
+          console.error(error);
+          throw 'Error creating deal trade';
+        }
       }
     }
-  }
 
-  if (deal.creditor_id === null) {
+    for (const salesman of salesmen || []) {
+
+      console.log({salesman});
+      
+    await tx.dealSalesman.upsert({
+      where: {
+        deal_salesman: {
+          deal: dealTransaction.id,
+          salesman: salesman,
+        },
+      },
+      update: {},
+      create: {
+        deal: dealTransaction.id,
+        salesman: salesman,
+        id: randomUUID(),
+      },
+    })
+    } 
+  
+    if (deal.creditor === null) {
+      return {
+        deal: dealTransaction,
+        inventory: inventoryTransaction,
+      };
+    }
+  
+    // Delete the charges in the case of an updated creditor having different charges.
+    await tx.dealCharge.deleteMany({
+      where: {
+        deal: dealTransaction.id,
+      },
+    });
+
+    const creditor_charges = await getAllCreditorDefaultCharges({
+      creditor: deal.creditor,
+    });
+  
+    for (const charge of creditor_charges) {
+      const note = charge.charge_default_charge_chargeTocharge.name;
+      await tx.dealCharge.upsert({
+        where: {
+          deal_charge: {
+            deal: dealTransaction.id,
+            charge: charge.charge_default_charge_chargeTocharge.id,
+          },
+        },
+        update: {
+          note,
+          date: deal.date,
+        },
+        create: {
+          deal: dealTransaction.id,
+          charge: charge.charge_default_charge_chargeTocharge.id,
+          note,
+          id: randomUUID(),
+          date: dealTransaction.date,
+        },
+      });
+    }
+
+    const account = dealTransaction.Account;
+  
+ 
+    if (!dealTransaction.inventory) {
+      console.error('No inventory found for deal', dealTransaction.id);
+      throw new Error();
+    }
+  
+    if (!account || !account.person) {
+      console.error('No account found for deal', dealTransaction.id);
+      throw new Error();
+    }
+  
     return {
-      deal: transaction[0],
-      inventory: transaction[1],
+      deal: dealTransaction,
+      inventory: inventoryTransaction,
     };
-  }
-
-  const creditor_charges = await getAllCreditorDefaultCharges({
-    creditor: deal.creditor_id,
   });
 
-  for (const charge of creditor_charges) {
-    const note = charge.charge_chargeTodefault_charge.name;
-    await createDealCharge({
-      deal: transaction[0].id,
-      charge: charge.charge,
-      note,
-      date: deal.date,
-    });
-  }
+  const { deal: createdDeal, inventory: createdInventory } = transaction;
 
-  const createdDeal = transaction[0];
-
-  const inventory = await getInventory({ deal: createdDeal.id });
-  const account = await getAccount({ id: createdDeal.account_id });
-
-  if (!inventory) {
-    console.error('No inventory found for deal', createdDeal.id);
-  }
-
-  if (!account) {
-    console.error('No account found for deal', createdDeal.id);
-  }
+  const formattedInventory = formatInventory(createdInventory);
 
   await notifyDeal({
+    fullName: fullNameFromPerson(createdDeal.Account.person),
+    invString: formattedInventory,
     dealId: createdDeal.id,
-    // salesman: (Array.isArray(deal_salesman) ? deal_salesman[0] : deal_salesman).salesman,
-    fullName: fullNameFromPerson(account?.person),
-    amount: +createdDeal.term > 0 ? +(createdDeal.lien || 0) : +createdDeal.cash,
-    invString: formatInventory(inventory),
-    type: exists ? 'UPDATE' : +createdDeal.term !== 0 ? 'CREDIT' : 'CASH',
+    amount: +createdDeal.cash,
+    type: +createdDeal.term > 0 ? 'CREDIT' : 'CASH',
   });
 
-  return {
-    deal: transaction[0],
-    inventory: transaction[1],
-  };
+  return createdDeal;
 };
 
 export default createDeal;

@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 import pdftk from 'node-pdftk';
-import { forms } from 'types/forms';
+import { Form } from '@/types/forms';
 
 async function generate({
   form,
@@ -9,7 +9,7 @@ async function generate({
   data,
   concat,
 }: {
-  form: forms;
+  form: Form;
   output: string;
   data: string[] | string[][];
   concat?: {
@@ -59,7 +59,7 @@ async function generate({
 
   const rootPath = process.cwd();
   const formsPath = `${rootPath}/public/forms/filled`;
-  const inputPath = `${rootPath}/lib/formBuilder/forms`;
+  const inputPath = `${rootPath}/lib/forms`;
   const outputFullPath = `${formsPath}/${
     output.includes('.pdf') ? output : output + '.pdf'
   }`;

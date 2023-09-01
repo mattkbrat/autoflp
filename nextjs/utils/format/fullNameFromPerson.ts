@@ -1,5 +1,3 @@
-import { Person } from "@prisma/client";
-
 export function fullNameFromPerson(
   person: {
     first_name?: string | null;
