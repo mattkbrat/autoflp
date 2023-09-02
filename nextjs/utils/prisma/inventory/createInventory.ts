@@ -4,8 +4,9 @@ import notifyInventory from '@/utils/pushover/inventory';
 import formatInventory from '@/utils/format/formatInventory';
 import { Inventory } from '@/types/prisma/inventory';
 
-const createInventory = async ({ inventory }: { inventory: Inventory }) => {
-  if (!inventory || !inventory.vin) {
+const createInventory = async ({ inventory }: { inventory: Partial<Inventory> }) => {
+  const { vin, year, make } = inventory;
+  if (!inventory || !vin || !year || !make) {
     throw new Error('VIN is required');
   }
 
@@ -21,7 +22,10 @@ const createInventory = async ({ inventory }: { inventory: Inventory }) => {
       },
       create: {
         ...inventory,
+        vin,
         id,
+        year,
+        make,
       },
     })
     .then(async (res) => {

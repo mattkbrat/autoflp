@@ -1,5 +1,6 @@
 import { getInventoryWithDeals } from '@/utils/prisma/inventory';
 import InventoryCard from '@/components/display/InventoryCard';
+import InventoryPage from '@/app/inventory/InventoryPage';
 
 const InventoryWithIdPage = async ({
   params,
@@ -14,9 +15,8 @@ const InventoryWithIdPage = async ({
     return <p>No inventory found with id {params.id}</p>;
   }
 
-  return <InventoryCard 
-  inventory={inventory} 
-  />;
+  // return <p>Inventory page</p>;
+  return <InventoryPage inventory={inventory} />;
 };
 
 export default InventoryWithIdPage;

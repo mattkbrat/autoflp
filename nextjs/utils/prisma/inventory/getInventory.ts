@@ -1,6 +1,7 @@
 import prisma from '@/lib/prisma';
 
 const getInventory = async ({
+  id,
   make,
   model,
   year,
@@ -8,35 +9,32 @@ const getInventory = async ({
   state,
   deal,
 }: {
+  id?: string | string[];
   make?: string | string[];
   model?: string | string[];
   year?: string | string[];
   vin?: string | string[];
   state?: number | number[];
-  deal?: string;
+  deal?: string | string[];
 }) => {
+  console.log('Fetching inventory with the following params:', {
+    id,
+    make,
+    model,
+    year,
+    vin,
+    state,
+    deal,
+  });
+
   return prisma.inventory.findMany({
     where: {
-      make: typeof make === 'string' ? make : {
-        in: make,
-      },
-      model: typeof model === 'string' ? model : {
-        in: model,
-      },
-      year: typeof year === 'string' ? year : {
-        in: year,
-      },
-      vin: typeof vin === 'string' ? vin : {
-        in: vin,
-      },
-      state: typeof state === 'number' ? state : {
-        in: state,
-      },
-      deal: {
-        some: {
-          id: deal,
-        },
-      },
+      id: Array.isArray(id) ? { in: id } : id,
+      make: Array.isArray(make) ? { in: make } : make,
+      model: Array.isArray(model) ? { in: model } : model,
+      year: Array.isArray(year) ? { in: year } : year,
+      vin: Array.isArray(vin) ? { in: vin } : vin,
+      state: Array.isArray(state) ? { in: state } : state,
     },
     orderBy: [
       {

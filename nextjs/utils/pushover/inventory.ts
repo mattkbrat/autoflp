@@ -1,5 +1,5 @@
 import send from './send';
-import handleUrl from "@/utils/handleUrl";
+import handleUrl from '@/utils/handleUrl';
 
 export default async function notifyInventory({
   inventory,
@@ -10,21 +10,7 @@ export default async function notifyInventory({
   id: string;
   type: 'UPDATE' | 'CREATE' | 'DELETE';
 }) {
-  let message: string;
-
-  switch (type) {
-    case 'CREATE':
-      message = `New inventory item ${inventory} added`;
-      break;
-    case 'UPDATE':
-      message = `Updated inventory item ${inventory}`;
-      break;
-    case 'DELETE':
-      message = `Deleted inventory item ${inventory}`;
-      break;
-    default:
-      throw new Error('Invalid type');
-  }
+  const message = inventory;
 
   return send({
     title: `Inventory ${

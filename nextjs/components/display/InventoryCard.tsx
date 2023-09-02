@@ -13,19 +13,21 @@ const InventoryCard = ({
   idType = 'vin',
   inventory: defaultInventory,
   withAccounts = true,
+  simple = false,
 }: {
   inventoryID?: string | null;
   idType?: 'vin' | 'id';
   inventory?: InventoryWithDeals;
   withAccounts?: boolean;
+  simple?: boolean;
 }) => {
-  const [inventory, setInventory] = useState<InventoryWithDeals>(defaultInventory || null);
+  const [inventory, setInventory] = useState<InventoryWithDeals | null>(
+    defaultInventory || null,
+  );
 
   useEffect(() => {
-    inventoryID &&
-    setInventory(null)
-  }
-  , [inventoryID]);
+    inventoryID && setInventory(null);
+  }, [inventoryID]);
 
   useEffect(() => {
     if (!inventory && inventoryID) {
@@ -33,8 +35,7 @@ const InventoryCard = ({
         .then((res) => res.json())
         .then((data) => {
           setInventory(data);
-        }
-      );
+        });
     }
   }, [inventory, inventoryID]);
 
@@ -47,19 +48,17 @@ const InventoryCard = ({
 
   const { bg, accent } = useColors();
 
-  if (!inventory){
-    return (
-        inventoryID ? <Spinner /> : <div>No inventory selected</div> 
-    )
+  if (!inventory) {
+    return inventoryID ? <Spinner /> : <div>No inventory selected</div>;
   }
   return (
     <Stack
       p={2}
-      bg={bg}
+      bg={simple ? 'transparent' : bg}
       outline={accent}
-      textAlign={'center'}
-      alignItems={'center'}
-      borderRadius={4}
+      textAlign={simple ? 'left' : 'center'}
+      alignItems={simple ? 'flex-start' : 'center'}
+      borderRadius={simple ? 0 : 4}
     >
       <Heading>{formatted}</Heading>
       <Code>{inventory.vin.toUpperCase()}</Code>
@@ -71,30 +70,31 @@ const InventoryCard = ({
           md: 'repeat(3, 1fr)',
         }}
       >
-        {withAccounts && inventory.deal.map((deal, n) => {
-          return (
-            <GridItem key={n}>
-              <Stack p={4} outlineOffset={-4} borderRadius={2} outline={accent}>
-                <Heading
-                  as={'h3'}
-                  size={'lg'}
-                  textDecoration={'underline'}
-                  textUnderlineOffset={2}
-                >
-                  {fullNameFromPerson(deal.Account.person)}
-                </Heading>
-                <DealCard
-                  deal={{
-                    ...deal,
-                    lien: deal.lien || '-',
-                    // formattedInventory: formatted,
-                    status: deal.state === 1,
-                  }}
-                />
-              </Stack>
-            </GridItem>
-          );
-        })}
+        {withAccounts &&
+          inventory.deal.map((deal, n) => {
+            return (
+              <GridItem key={n}>
+                <Stack p={4} outlineOffset={-4} borderRadius={2} outline={accent}>
+                  <Heading
+                    as={'h3'}
+                    size={'lg'}
+                    textDecoration={'underline'}
+                    textUnderlineOffset={2}
+                  >
+                    {fullNameFromPerson(deal.Account.person)}
+                  </Heading>
+                  <DealCard
+                    deal={{
+                      ...deal,
+                      lien: deal.lien || '-',
+                      // formattedInventory: formatted,
+                      status: deal.state === 1,
+                    }}
+                  />
+                </Stack>
+              </GridItem>
+            );
+          })}
       </Grid>
     </Stack>
   );

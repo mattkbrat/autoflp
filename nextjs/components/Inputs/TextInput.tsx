@@ -31,12 +31,12 @@ function parse(name: string, value: string): string | number | boolean | undefin
   return formatted;
 }
 
-export function TextInput(props: {
+export function TextInput<T extends AnyObject>(props: {
   name: string;
   value?: string;
   label?: string;
-  changes?: AnyObject;
-  setChanges?: React.Dispatch<React.SetStateAction<AnyObject>>;
+  changes: T;
+  setChanges: React.Dispatch<React.SetStateAction<T>>;
   isDisabled?: boolean;
   isRequired?: boolean;
   isInvalid?: boolean;
