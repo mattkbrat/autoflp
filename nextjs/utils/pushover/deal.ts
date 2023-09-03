@@ -48,13 +48,13 @@ export default async function notifyDeal({
         : `${
             type === 'UPDATE'
               ? 'Updated deal'
-              : 'New' + `${type.toLowerCase()} ${type} deal`
+              : `New ${type === 'CASH' ? 'cash' : 'credit'} deal`
           }`,
     priority: 1,
     sound: 'cashregister',
     message,
     url: handleUrl(urlParams),
-    url_title: 'View Person',
+    url_title: 'View Account',
   });
 
   return success;

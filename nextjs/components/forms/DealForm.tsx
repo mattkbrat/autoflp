@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { FaFileDownload } from 'react-icons/fa';
 import { print } from '@/utils/print';
 
@@ -64,8 +64,10 @@ import { downloadZip } from '@/utils/formBuilder/downloadZip';
 import { Form } from '@/types/forms';
 import PersonCard from '@/components/display/PersonCard';
 import formatInventory from '@/utils/format/formatInventory';
+import { TextInput } from '@/components/Inputs/TextInput';
 
-const debug = isDev;
+// const debug = isDev;
+const debug = true && isDev; // Never have debug in production
 
 /**
  * This page will be rendered at /deal
@@ -77,7 +79,6 @@ const debug = isDev;
  * @returns JSX.Element
  */
 export function DealForm(props: { id: string }) {
-  const { id } = props;
   const [changes, setChanges] = useState<
     Partial<Deal> & {
       downOwed: number;
@@ -86,9 +87,10 @@ export function DealForm(props: { id: string }) {
       trade_value: number;
       filing_fees: string;
       totalCost: number;
+      cosigner: string | null;
     }
   >({
-    id,
+    id: props.id,
     tax_city: '0',
     tax_rtd: '0',
     tax_county: '0',
@@ -102,6 +104,7 @@ export function DealForm(props: { id: string }) {
     date: new Date().toISOString().split('T')[0],
     salesman: '',
     trade_value: 0,
+    cosigner: '',
   });
 
   const isCredit = useMemo(() => {
@@ -492,8 +495,10 @@ export function DealForm(props: { id: string }) {
       return;
     }
 
-    const body: Deal = {
-      id,
+    const body: Deal & {
+      cosigner: string;
+    } = {
+      id: changes.id || '',
       state: changes.sale_type === 'credit' ? 1 : 0,
       // match format yyyy-mm-dd
       date: changes.date as string,
@@ -514,6 +519,7 @@ export function DealForm(props: { id: string }) {
       tax_city: (+(changes.tax_city || 0)).toFixed(2),
       tax_rtd: (+(changes.tax_rtd || 0)).toFixed(2),
       tax_county: (+(changes.tax_county || 0)).toFixed(2),
+      cosigner: changes.cosigner || null,
     };
 
     // console.table({ body })
@@ -527,6 +533,7 @@ export function DealForm(props: { id: string }) {
       (res) => {
         if (res.status === 200) {
           res.json().then((data) => {
+            console.log('Complete', data);
             if (typeof data.forms !== 'undefined') {
               const fetchedForms: any[] = data.forms;
 
@@ -545,6 +552,7 @@ export function DealForm(props: { id: string }) {
               ({ filteredForms });
             }
 
+            data?.deal?.id && setChanges({ ...changes, id: data.deal.id });
             setMessage(`Success: ${data.message}`);
           });
         } else {
@@ -734,7 +742,7 @@ export function DealForm(props: { id: string }) {
                           : new Date(),
                       numberOfPayments: +(changes.term || 0),
                       annualRate: +(changes.apr || 0),
-                      pmt: +(changes.pmt || 0),
+                      pmt: +(calculatedFinance.monthlyPayment || 0),
                       finance: calculatedFinance,
                     }}
                     defaultShow={false}
@@ -840,17 +848,25 @@ export function DealForm(props: { id: string }) {
               </Stack>
 
               {aid && (
-                <Tabs>
-                  <TabList>
-                    {aid && <Tab>Account</Tab>}
-                    {pid && <Tab>Person</Tab>}
-                  </TabList>
-                  <TabPanels>
-                    <TabPanel>{aid && <AccountCard id={aid} />}</TabPanel>
-                    <TabPanel>{pid && <PersonCard id={pid} />}</TabPanel>
-                  </TabPanels>
-                </Tabs>
+                <Stack
+                  direction={{
+                    base: 'column',
+                    md: 'row',
+                  }}
+                  w={'full'}
+                  justifyContent={'center'}
+                >
+                  {aid && <AccountCard id={aid} />}
+                  {pid && <PersonCard id={pid} />}
+                </Stack>
               )}
+
+              <TextInput
+                name="cosigner"
+                label="Cosigner"
+                changes={changes}
+                setChanges={setChanges}
+              />
 
               <Divider />
 
@@ -868,7 +884,11 @@ export function DealForm(props: { id: string }) {
                     {inventoryState === 0 ? 'Current Inventory' : 'All Inventory'}
                   </Button>
                 </Stack>
-                <InventoryCard withAccounts={false} inventoryID={iid as string} />
+                <InventoryCard
+                  simple={true}
+                  withAccounts={false}
+                  inventoryID={iid as string}
+                />
               </Flex>
 
               <Divider />
@@ -970,30 +990,30 @@ export function DealForm(props: { id: string }) {
                 >
                   <PercentageInput
                     formLabel="State Tax"
-                    name={+changes.tax_state ?? 0}
+                    name={+(changes.tax_state ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_state: valueAsNumber })
+                      setChanges({ ...changes, tax_state: _valueAsString })
                     }
                   />
                   <PercentageInput
                     formLabel="City Tax"
-                    name={+changes.tax_city}
+                    name={+(changes.tax_city ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_city: valueAsNumber })
+                      setChanges({ ...changes, tax_city: _valueAsString })
                     }
                   />
                   <PercentageInput
                     formLabel="RTD Tax"
-                    name={+changes.tax_rtd ?? 0}
+                    name={+(changes.tax_rtd ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_rtd: valueAsNumber })
+                      setChanges({ ...changes, tax_rtd: _valueAsString })
                     }
                   />
                   <PercentageInput
                     formLabel="County Tax"
-                    name={+changes.tax_county ?? 0}
+                    name={+(changes.tax_county ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_county: valueAsNumber })
+                      setChanges({ ...changes, tax_county: _valueAsString })
                     }
                   />
                 </Stack>

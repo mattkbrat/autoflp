@@ -1,12 +1,11 @@
 import prisma from '@/lib/prisma';
-import { deal } from '@prisma/client';
 
-const getDeal = async (dealId: string) => {
+const getDeal = async ({ id }: { id: string }) => {
   return prisma.deal.findUnique({
     where: {
-      id: dealId,
+      id,
     },
-  }) as Promise<deal>;
+  });
 };
 
 export default getDeal;

@@ -27,10 +27,12 @@ const createDeal = async ({
   deal,
   trades,
   salesmen,
+  cosigner,
 }: {
   deal: Deal;
   trades?: Inventory[];
   salesmen?: Salesman[];
+  cosigner?: string;
 }) => {
   console.log(deal);
 
@@ -39,6 +41,15 @@ const createDeal = async ({
   const dealId = randomUUID();
 
   const transaction = await prisma.$transaction(async (tx) => {
+    await tx.account.update({
+      where: {
+        id: deal.account,
+      },
+      data: {
+        cosigner: cosigner,
+      },
+    });
+
     const dealTransaction = await tx.deal.upsert({
       where: {
         date_account_inventoryId: {
@@ -59,18 +70,85 @@ const createDeal = async ({
       },
     });
 
-    const closedDeals = await tx.deal.updateMany({
-      where: {
-        inventoryId: deal.inventoryId,
-        state: 1,
-        id: {
-          not: dealTransaction.id,
+    // const closedDeals = await tx.deal.updateMany({
+    //   where: {
+    //     inventoryId: deal.inventoryId,
+    //     state: 1,
+    //     id: {
+    //       not: dealTransaction.id,
+    //     },
+    //   },
+    //   data: {
+    //     state: 0,
+    //   },
+    // });
+    //
+    // Promise.all(
+    //   closedDeals.map(async (closedDeal) => {
+    //     await notifyDeal({
+    //       fullName: fullNameFromPerson(closedDeal.Account.person),
+    //       invString: formatInventory(closedDeal.inventory),
+    //       dealId: closedDeal.id,
+    //       amount: +closedDeal.cash,
+    //       type: 'CLOSE',
+    //     });
+    //   }),
+    // );
+
+    const closedDeals = await prisma.$transaction(async (tx) => {
+      const selectedDeals = await tx.deal.findMany({
+        where: {
+          inventoryId: deal.inventoryId,
+          state: 1,
+          id: {
+            not: dealTransaction.id,
+          },
         },
-      },
-      data: {
-        state: 0,
-      },
+        select: {
+          id: true,
+          cash: true,
+          Account: {
+            select: {
+              person: true,
+            },
+          },
+          inventory: true,
+        },
+      });
+
+      if (selectedDeals.length === 0) {
+        return [];
+      }
+
+      await tx.deal
+        .updateMany({
+          where: {
+            id: {
+              in: selectedDeals.map((deal) => deal.id),
+            },
+          },
+          data: {
+            state: 0,
+          },
+        })
+        .then(async () => {
+          await Promise.all(
+            selectedDeals.map(async (closedDeal) => {
+              await notifyDeal({
+                fullName: fullNameFromPerson(closedDeal.Account.person),
+                invString: formatInventory(closedDeal.inventory),
+                dealId: closedDeal.id,
+                amount: +closedDeal.cash,
+                type: 'CLOSE',
+              });
+            }),
+          );
+        });
+
+      return selectedDeals;
     });
+
+    console.log({ closedDeals });
 
     const inventoryTransaction = await tx.inventory.update({
       where: inventoryIdIsVin

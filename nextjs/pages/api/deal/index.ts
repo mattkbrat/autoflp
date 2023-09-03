@@ -63,7 +63,9 @@ async function dealFetcher(req: NextApiRequest, res: NextApiResponse) {
           .json({ error: error?.message ?? 'Internal server error' });
       }
     case 'POST':
-      const { body: deal, salesman, tradeVehicles: trades } = req.body;
+      const { body: reqBody, salesman, tradeVehicles: trades } = req.body;
+
+      const { cosigner, ...deal } = reqBody;
 
       try {
         if (typeof deal.id === 'undefined') {
@@ -72,11 +74,12 @@ async function dealFetcher(req: NextApiRequest, res: NextApiResponse) {
 
         // Try to find existing deal id using inventory, date, and account
 
-        const createdDeal = await createDeal({ deal, 
-          trades: typeof trades === 'string' ? [trades] : trades
-          , salesmen: typeof salesman === 'string' ? [salesman] : salesman });
-
-
+        const createdDeal = await createDeal({
+          deal,
+          cosigner: cosigner,
+          trades: typeof trades === 'string' ? [trades] : trades,
+          salesmen: typeof salesman === 'string' ? [salesman] : salesman,
+        });
 
         const forms = await generateMultipleDealForms({
           forms: [
