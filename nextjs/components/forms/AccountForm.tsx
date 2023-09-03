@@ -1,9 +1,14 @@
 'use client';
 
-import { Button, Stack, useToast } from '@chakra-ui/react';
+import { Button, Stack, Textarea, useToast } from '@chakra-ui/react';
 import { TextInput } from '@/components/Inputs/TextInput';
 import { useState } from 'react';
-import { Account } from '@/types/prisma/accounts';
+import {
+  Account,
+  AccountWithRelevant,
+  AccountWithRelevantDealOmit,
+} from '@/types/prisma/accounts';
+import { useRouter } from 'next/navigation';
 
 /*
 
@@ -13,41 +18,66 @@ The account form should have the following fields:
   license_expiration String?
 */
 
-function Account(props: {
+function AccountForm(props: {
   defaultCollapsed?: boolean;
   redirectOnSubmit?: boolean;
-  editing: Account;
+  editing: AccountWithRelevantDealOmit | null;
 }) {
   const { editing } = props;
-  const [changes, setChanges] = useState<Partial<Account>>(editing);
-  const toast = useToast();
 
-  const pid = changes.contact;
+  const [changes, setChanges] = useState<Partial<Account>>({
+    date_added: editing?.date_added,
+    date_modified: editing?.date_modified,
+    date_of_birth: editing?.date_of_birth,
+    id: editing?.id,
+    current_standing: editing?.current_standing,
+    license_expiration: editing?.license_expiration,
+    license_number: editing?.license_number,
+    notes: editing?.notes,
+    cosigner: editing?.cosigner,
+  });
+  const toast = useToast();
 
   async function onSubmit(e: React.FormEvent<HTMLDivElement>) {
     e.preventDefault();
 
-    if (!pid) {
-      throw 'Person ID is required.';
-    }
+    // if (!editing || !editing.id) {
+    //   return;
+    // }
 
-    const submitted = await fetch('/api/accounts', {
-      method: 'PUT',
+    const method = !editing ? 'POST' : 'PUT';
+    const url = !editing ? '/api/account' : `/api/account/${editing.id}`;
+
+    const router = useRouter();
+
+    console.log('changes', changes);
+
+    const submitted = await fetch(url, {
+      method: method,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        ...changes,
-        contact: pid,
-      }),
-    });
-
-    toast({
-      title: submitted.ok ? 'Success!' : 'Error!',
-      description: submitted.ok ? 'Account saved.' : 'Account not saved.',
-      status: submitted.ok ? 'success' : 'error',
-      duration: 5000,
-    });
+      body: JSON.stringify(changes),
+    })
+      .then(async (res) => {
+        return {
+          ok: res.ok,
+          json: await res.json(),
+        };
+      })
+      .then((res) => {
+        toast({
+          title: res.ok ? 'Success!' : 'Error!',
+          description: res.ok ? 'Account saved.' : 'Account not saved.',
+          status: res.ok ? 'success' : 'error',
+          duration: 5000,
+        });
+        if (method === 'POST') {
+          const id = res.json.account.id;
+          if (!id) return;
+          router.push(`/accounts/${id}`);
+        }
+      });
   }
 
   return (
@@ -84,6 +114,11 @@ function Account(props: {
         setChanges={setChanges}
         name={'cosigner'}
       />
+      <Textarea
+        value={changes?.notes || editing?.notes || ''}
+        onChange={(e) => setChanges({ ...changes, notes: e.target.value })}
+        name={'notes'}
+      />
       <Button type={'submit'} colorScheme={'blue'}>
         Submit
       </Button>
@@ -91,4 +126,4 @@ function Account(props: {
   );
 }
 
-export default Account;
+export default AccountForm;

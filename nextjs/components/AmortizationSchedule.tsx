@@ -120,6 +120,8 @@ function AmortizationSchedule({
     defaultSchedule: dSchedule,
   });
 
+  console.log(schedule);
+
   const [withZeroPayments, setWithZeroPayments] = useState<boolean>(false);
 
   const defaultSchedule = dSchedule;
@@ -421,20 +423,6 @@ function AmortizationSchedule({
                 {schedule &&
                   schedule.schedule?.map((row, bIndex: number) => (
                     <Fragment key={'btr-' + bIndex}>
-                      {/*
-                  TODO:
-                  This is broken, because the grouping is off.
-                  Need to fix this to show the year.
-                  Priority: Low
-                  */}
-                      {/* <Tr>
-                    <Td colSpan={8}>
-                      <Text textAlign="center" fontWeight="bold">{`Year ${
-                        schedule.schedule.length - bIndex
-                      }`}</Text>
-                    </Td>
-                  </Tr> */}
-
                       {row
                         .filter((r) =>
                           withZeroPayments ? true : r.total && r.total > 0,

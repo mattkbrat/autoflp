@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Account } from '@/types/prisma/accounts';
-import { Spinner, Stack, Text } from '@chakra-ui/react';
+import {
+  Spinner,
+  Stack,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
+  Text,
+  Th,
+  Tr,
+} from '@chakra-ui/react';
+import Link from 'next/link';
 
 //  {id: string, contact: string, cosigner: string | null, date_of_birth: string | null, license_number: string, license_expiration: string | null, date_added: string | null, date_modified: string | null, current_standing: string | null, notes: string | null
 const AccountCard = ({
@@ -13,8 +24,7 @@ const AccountCard = ({
   const [account, setAccount] = useState(defaultAccount || null);
 
   useEffect(() => {
-    id &&
-    setAccount(null);
+    id && setAccount(null);
   }, [id]);
 
   useEffect(() => {
@@ -33,15 +43,23 @@ const AccountCard = ({
 
   return (
     <Stack>
-      <Text>
-        {account?.license_number} ({account?.license_expiration})
-      </Text>
-      <Text>{account?.contact}</Text>
-      <Text>{account?.cosigner}</Text>
-      <Text>{account?.date_of_birth}</Text>
-      <Text>{account?.date_added}</Text>
-      <Text>{account?.date_modified}</Text>
-      <Text>{account?.current_standing}</Text>
+      <TableContainer>
+        <Table>
+          <Tbody>
+            <Tr>
+              <Th>License (expiration)</Th>
+              <Td>
+                {account?.license_number} ({account?.license_expiration})
+              </Td>
+            </Tr>
+            <Tr>
+              <Th>Date of Birth</Th>
+              <Td>{account?.date_of_birth}</Td>
+            </Tr>
+          </Tbody>
+        </Table>
+      </TableContainer>
+      <Link href={`/accounts/${account.id}`}>Edit</Link>
     </Stack>
   );
 };

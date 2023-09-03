@@ -12,11 +12,13 @@ const getAccountWithRelevant = ({
   return prisma.account.findUnique({
     where: {
       id,
-      deal_deal_accountToaccount: {
-        some: {
-          id: dealId,
-        },
-      },
+      deal_deal_accountToaccount: dealId
+        ? {
+            some: {
+              id: dealId,
+            },
+          }
+        : undefined,
     },
     include: {
       person: true,

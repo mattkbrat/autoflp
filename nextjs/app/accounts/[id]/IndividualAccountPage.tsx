@@ -1,24 +1,39 @@
 'use client';
 
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
-import { Grid, GridItem, Heading, Text } from '@chakra-ui/react';
-import { AccountWithRelevantNotNull } from '@/types/prisma/accounts';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Divider,
+  Grid,
+  GridItem,
+  Heading,
+  Text,
+} from '@chakra-ui/react';
+import {
+  AccountWithRelevantDealOmit,
+  AccountWithRelevantNotNull,
+} from '@/types/prisma/accounts';
 import { SimpleDeal } from '@/types/prisma/deals';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import { DealCard } from '@/components/display/DealCard';
+import PersonForm from '@/components/forms/PersonForm';
+import AccountForm from '@/components/forms/AccountForm';
+import React from 'react';
 
 const IndividualAccountPage = ({
   account,
   deals,
 }: {
-  account: Omit<AccountWithRelevantNotNull, 'deal_deal_accountToaccount'>;
+  account: AccountWithRelevantDealOmit;
   deals: SimpleDeal[];
 }) => {
   if (!account) {
     return <Heading>Account not found</Heading>;
   }
   const fullName = fullNameFromPerson(account.person);
-  const address = addressFromPerson({person: account.person});
+  const address = addressFromPerson({ person: account.person });
 
   return (
     <>
@@ -49,6 +64,20 @@ const IndividualAccountPage = ({
           );
         })}
       </Grid>
+      <Divider />
+      <Breadcrumb fontSize={'lg'}>
+        <BreadcrumbItem>
+          <BreadcrumbLink href={`/accounts`}>Accounts</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbItem isCurrentPage>
+          <BreadcrumbLink>
+            {fullNameFromPerson(account.person).toUpperCase()}
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+      </Breadcrumb>
+
+      <PersonForm editing={account.person} />
+      {account.person && <AccountForm editing={account} />}
     </>
   );
 };

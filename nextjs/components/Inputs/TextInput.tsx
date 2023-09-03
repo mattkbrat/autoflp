@@ -13,8 +13,18 @@ import { AnyObject } from 'chart.js/dist/types/basic';
 
 const anyStringRegexString = '.*';
 
+const validLicense = (license: string, name: string): boolean => {
+  if (name !== 'License Number') return true;
+  const isUUID = license.length === 36 || license.length === 32;
+  return !isUUID;
+};
+
 function parse(name: string, value: string): string | number | boolean | undefined {
   if (!value || !name) {
+    return '';
+  }
+
+  if (!validLicense(value, name)) {
     return '';
   }
 
@@ -32,7 +42,7 @@ function parse(name: string, value: string): string | number | boolean | undefin
 }
 
 export function TextInput<T extends AnyObject>(props: {
-  name: string;
+  name: keyof T;
   value?: string;
   label?: string;
   changes: T;
@@ -48,7 +58,7 @@ export function TextInput<T extends AnyObject>(props: {
     element: JSX.Element;
   };
 }): JSX.Element {
-  const id = props.name + '-input';
+  const id = props.name.toString() + '-input';
 
   const {
     name,
@@ -65,6 +75,10 @@ export function TextInput<T extends AnyObject>(props: {
   // const formTitle = label.charAt(0).toUpperCase() + name.slice(1).replace(/_/g, ' ');
 
   const inputElement = props.inputElement ? props.inputElement.element : null;
+
+  if (typeof name !== 'string') {
+    return <p>Invalid input</p>;
+  }
 
   const inputGroup = (
     <InputGroup>

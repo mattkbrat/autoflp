@@ -1,12 +1,13 @@
 import prisma from '@/lib/prisma';
 import { Deal } from '@/types/prisma/deals';
+import { Prisma } from '@prisma/client';
 
 const getCurrentDealsWithInventory = ({
   inventory,
   exclude,
 }: {
-  inventory: Deal['inventory_id'];
-  exclude?: Deal['id'][];
+  inventory: Deal['inventoryId'];
+  exclude?: string[];
 }) => {
   if (!inventory) {
     throw 'Inventory is required';

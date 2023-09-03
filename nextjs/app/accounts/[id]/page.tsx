@@ -15,6 +15,7 @@ const AccountWithIdPage = async ({
   const account = await getAccountWithRelevant({ id: params.id });
 
   if (!account) {
+    console.error('Account not found', params.id);
     redirect('/accounts');
   }
 

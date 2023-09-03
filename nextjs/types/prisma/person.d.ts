@@ -4,7 +4,7 @@ import getPeople from '@/utils/prisma/person/getPeople';
 import getPerson from '@/utils/prisma/person/getPerson';
 import { AsyncReturnType } from '../AsyncReturn';
 
-export type Person = AsyncReturnType<typeof getPerson>;
+export type Person = NonNullable<AsyncReturnType<typeof getPerson>>;
 export type People = AsyncReturnType<typeof getPeople>;
 
 export type PersonCreditor = People[number]['creditors'][number];

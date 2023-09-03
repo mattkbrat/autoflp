@@ -1,20 +1,34 @@
 'use client';
 
-import { Spinner, Stack } from '@chakra-ui/react';
+import {
+  Spinner,
+  Stack,
+  Table,
+  TableContainer,
+  Tbody,
+  Td,
+  Th,
+  Tr,
+} from '@chakra-ui/react';
 import { Person } from '@/types/prisma/person';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { useEffect, useMemo, useState } from 'react';
 
-const PersonCard = ({ person: defaultPerson, id }: { id?: string, person?: Person }) => {
+const PersonCard = ({
+  person: defaultPerson,
+  id,
+}: {
+  id?: string;
+  person?: Person;
+}) => {
   // const { full: address } = addressFromPerson(person);
   // const name = id && fullNameFromPerson(id);
 
-  const [person, setPerson] = useState<Person>(defaultPerson || null);
+  const [person, setPerson] = useState<Person | null>(defaultPerson || null);
 
   useEffect(() => {
-    id &&
-    setPerson(null)
+    id && setPerson(null);
   }, [id]);
 
   useEffect(() => {
@@ -23,8 +37,7 @@ const PersonCard = ({ person: defaultPerson, id }: { id?: string, person?: Perso
         .then((res) => res.json())
         .then((data) => {
           setPerson(data);
-        }
-      );
+        });
     }
   }, [person, id]);
 
@@ -36,24 +49,27 @@ const PersonCard = ({ person: defaultPerson, id }: { id?: string, person?: Perso
   }, [person]);
 
   const address = useMemo(() => {
-    if (person) {
-      return addressFromPerson(person).full;
-    }
-    return '';
+    return person ? addressFromPerson({ person }).full.toUpperCase() : '';
   }, [person]);
 
-  if (!person){
-    return (
-      <Spinner />
-    )
+  if (!person) {
+    return <Spinner />;
   }
 
-
   return (
-    <Stack>
-      <div>{name}</div>
-      <div>{address}</div>
-    </Stack>
+    <TableContainer>
+      <Table>
+        <Tbody></Tbody>
+        <Tr>
+          <Th>Name</Th>
+          <Td>{name}</Td>
+        </Tr>
+        <Tr>
+          <Th>Address</Th>
+          <Td>{address}</Td>
+        </Tr>
+      </Table>
+    </TableContainer>
   );
 };
 
