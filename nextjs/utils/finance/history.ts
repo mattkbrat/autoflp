@@ -2,8 +2,18 @@ import calcDelinquent from './delinquent';
 import financeFormat from './format';
 import formatDate from '@/utils/date/format';
 import type { DealWithPayments } from '@/types/prisma/deals';
+import { Override } from '@/types/Oerride';
 
-function financeHistory(pmt: NonNullable<DealWithPayments>): {
+function financeHistory(
+  pmt: NonNullable<
+    Override<
+      DealWithPayments[number],
+      {
+        date: Date | string;
+      }
+    >
+  >,
+): {
   date: string;
   owed: string;
   paid: string;
@@ -19,23 +29,34 @@ function financeHistory(pmt: NonNullable<DealWithPayments>): {
   let owed = +pmt.lien;
   let totalDelinquent = 0;
 
-  return pmt.payments.map((payment, index) => {
+  return (pmt.payments || []).map((payment, index) => {
     const { date, amount } = payment;
     const delinquentAmount = calcDelinquent(pmt, index)?.totalDelinquent || 0;
     totalDelinquent += delinquentAmount;
     // Owed is the total amount of the loan, minus the total amount paid plus the total amount delinquent.
-    owed = owed - +amount + delinquentAmount;
+    owed = owed - +amount;
+    const dateFormatted = formatDate(date, 'MM/dd/yyyy');
+    const owedFormatted = financeFormat({
+      num: owed,
+    });
+    const balance = financeFormat({
+      num: owed + +amount,
+    });
+    const delinquentFormatted = financeFormat({
+      num: delinquentAmount,
+    });
+
+    const amountFormatted = financeFormat({
+      num: +amount,
+    });
+
     return {
       key: index,
-      date: formatDate(date, 'MM/dd/yyyy'),
-      owed: financeFormat({
-        num: owed,
-      }),
-      paid: amount,
-      balance: '0',
-      delinquentAmount: financeFormat({
-        num: delinquentAmount,
-      }),
+      date: dateFormatted,
+      owed: owedFormatted,
+      paid: amountFormatted,
+      balance: balance,
+      delinquentAmount: delinquentFormatted,
     };
   });
 }

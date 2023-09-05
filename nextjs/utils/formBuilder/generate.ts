@@ -2,6 +2,7 @@ import fs from 'fs';
 
 import pdftk from 'node-pdftk';
 import { Form } from '@/types/forms';
+import { formsPath, inputFullPath, outputFullPath } from '@/lib/paths';
 
 async function generate({
   form,
@@ -47,40 +48,36 @@ async function generate({
         final: index === thisData.length - 1,
       };
 
-      const data = generate({
+      return generate({
         form,
         output: `${index}_${output}`,
         data: item,
         concat,
       });
-      return data;
     });
   }
 
-  const rootPath = process.cwd();
-  const formsPath = `${rootPath}/public/forms/filled`;
-  const inputPath = `${rootPath}/lib/forms`;
-  const outputFullPath = `${formsPath}/${
-    output.includes('.pdf') ? output : output + '.pdf'
-  }`;
-  const inputFullPath = `${inputPath}/${form}.pdf`;
+  const inputPath = inputFullPath(form);
+  const outputPath = outputFullPath(output);
 
   try {
     // throw if form does not exist
-    if (fs.readFileSync(inputFullPath).length === 0) {
+    if (fs.readFileSync(inputPath).length === 0) {
       throw new Error(`Form ${form} does not exist`);
     }
+
+    // console.log({ data, dataObj });
 
     // Wrap the pdftk call in a promise so we can await it
     await new Promise((resolve) => {
       pdftk
-        .input(inputFullPath)
+        .input(inputPath)
         .fillForm(dataObj)
         .flatten()
         .output()
         .then((buffer: any) => {
           // write to file
-          fs.writeFileSync(outputFullPath, buffer);
+          fs.writeFileSync(outputPath, buffer);
         })
         .then(() => {
           resolve(null);
@@ -92,7 +89,7 @@ async function generate({
 
     // The below is not working, so we're using the above for now
 
-    return fs.readdirSync('./public/forms/filled').filter((file) => {
+    return fs.readdirSync(formsPath).filter((file) => {
       return file.includes(output);
     });
   } catch (error) {

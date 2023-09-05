@@ -5,10 +5,10 @@ const paidThisMonth = ({
   payments,
   atMonth,
 }: {
-  payments: NonNullable<DealWithPayments>['payments'];
+  payments: NonNullable<DealWithPayments>[number]['payments'];
   atMonth: number;
 }) => {
-  return payments
+  return (payments || [])
     .filter((payment) => {
       const paymentDate = new Date(payment.date);
 

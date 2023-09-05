@@ -23,7 +23,7 @@ const accountPersonSelect = {
 };
 
 const getDealPayments = async ({ deal }: { deal: string }) => {
-  return prisma.deal.findFirst({
+  return prisma.deal.findUnique({
     where: {
       id: deal,
     },
@@ -61,7 +61,63 @@ const getDealPayments = async ({ deal }: { deal: string }) => {
         },
       },
       inventory: inventorySelect,
-      Account: accountPersonSelect,
+      Account: {
+        select: {
+          id: true,
+          person: true,
+        },
+      },
+    },
+  });
+};
+
+export const getDealsWithPayments = async ({ state }: { state?: 0 | 1 }) => {
+  return prisma.deal.findMany({
+    where: {
+      state,
+    },
+    orderBy: {
+      account: 'desc',
+    },
+    include: {
+      dealCharges: {
+        select: {
+          charges: {
+            select: {
+              id: true,
+              name: true,
+              amount: true,
+            },
+          },
+        },
+      },
+      dealTrades: {
+        include: {
+          inventory: inventorySelect,
+        },
+      },
+      inventory: inventorySelect,
+      Account: {
+        select: {
+          person: true,
+        },
+      },
+      payments: {
+        select: {
+          deal: true,
+          date: true,
+          amount: true,
+          id: true,
+        },
+        orderBy: [
+          {
+            date: 'desc' as Prisma.SortOrder,
+          },
+          {
+            amount: 'desc' as Prisma.SortOrder,
+          },
+        ],
+      },
     },
   });
 };

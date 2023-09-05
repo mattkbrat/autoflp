@@ -3,10 +3,16 @@ import { AsyncReturnType } from '@/types/AsyncReturn';
 import { getDealsWithRelevant, getDeal } from '@/utils/prisma/deal';
 import { Creditor } from '@prisma/client';
 import getDealWithPayments from '@/utils/prisma/deal/getDealWithPayments';
+import { getDealsWithPayments } from '@/utils/prisma/payment/getDealPayments';
 
 export type DealsWithRelevant = AsyncReturnType<typeof getDealsWithRelevant>;
 export type DealWithRelevant = DealsWithRelevant[number];
 export type Deal = NonNullable<AsyncReturnType<typeof getDeal>>;
+
+export type DealPayments = AsyncReturnType<typeof getDealPayments>;
+export type DealsPayments = AsyncReturnType<typeof getDealsWithPayments>;
+
+export type DealsPaymentsPayments = NonNullable<DealsPayments>[number]['payments'];
 
 export type SimpleDeal = {
   formattedInventory?: string;

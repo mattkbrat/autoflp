@@ -3,14 +3,14 @@ import JSZip from 'jszip';
 import { Form } from '@/types/forms';
 
 export function downloadZip(forms: Form[]) {
-  let foldername: string;
+  let foldeNname: string;
 
   const createZipPromise = new Promise((resolve, reject) => {
     const zip = new JSZip();
     // const folder = zip.folder("forms");
     const fetchPromise = async () => {
       await Promise.all(
-        forms.map(async (form) => {
+        forms.map(async (form, n) => {
           //Creates a new promise for each form that resolves
           // when the form is fetched and added to the zip
           const title = Object.keys(form)[0];
@@ -20,11 +20,11 @@ export function downloadZip(forms: Form[]) {
             return;
           }
 
-          if (!foldername) {
-            foldername = title.split('-')[0].trim();
+          if (!foldeNname) {
+            foldeNname = title.split('-')[0].trim();
           }
 
-          const filename = title.split('-')[1].trim();
+          const filename = title.split('-')[1]?.trim();
 
           url = `forms/filled/${url}`;
 
@@ -50,7 +50,7 @@ export function downloadZip(forms: Form[]) {
     const zip = value as JSZip;
 
     zip.generateAsync({ type: 'blob' }).then(function (content: any) {
-      saveAs(content, foldername ? `${foldername}.zip` : 'forms.zip');
+      saveAs(content, foldeNname ? `${foldeNname}.zip` : 'forms.zip');
     });
   });
 

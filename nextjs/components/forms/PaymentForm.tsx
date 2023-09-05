@@ -38,6 +38,7 @@ import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import formatInventory from '@/utils/format/formatInventory';
 import CurrencyInput from '@/components/Inputs/CurrencyInput';
 import FormWrap from '@/components/FormWrap';
+import { formatFinance } from '@/utils/finance';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -248,7 +249,7 @@ const PaymentForm = ({
         <Thead>
           <Tr>
             <Th>Delete</Th>
-            <Th>Pmt</Th>
+            <Th>Amount</Th>
             <Th>Date</Th>
           </Tr>
         </Thead>
@@ -256,7 +257,7 @@ const PaymentForm = ({
           {/* <pre>
             <code>{JSON.stringify(selectedCustomer, null, 2)}</code>
           </pre> */}
-          {/* Sort payments by date with newest first*/}
+          {/* Sort payments by date with the newest first*/}
           {selectedCustomer?.payment?.map((payment, n) => (
             <Tr key={`payment-${n}`}>
               <Td>
@@ -265,12 +266,22 @@ const PaymentForm = ({
                 </Button>
               </Td>
               <Td>
-                {Intl.NumberFormat('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                }).format(+payment.amount)}
+                {formatFinance({
+                  num: +(payment?.amount || 0),
+                  withoutCurrency: true,
+                })}
               </Td>
-              <Td>{payment.date.toLocaleString()}</Td>
+              <Td>
+                {
+                  payment.date
+                    .toLocaleString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                    .split('T')[0]
+                }
+              </Td>
             </Tr>
           ))}
         </Tbody>

@@ -12,6 +12,7 @@ const primaryDealerName = process.env.PRIMARY_DEALER_NAME;
 const dealerNumber = process.env.DEALER_NUMBER;
 
 const address = `${street}, ${city}, ${state} ${zip}`;
+const cityStateZip = `${city}, ${state} ${zip}`;
 
 function getBusinessData() {
   return {
@@ -25,6 +26,7 @@ function getBusinessData() {
     city,
     state,
     zip,
+    cityStateZip,
     primaryDealerName,
     dealerNumber,
     address,

@@ -1,9 +1,56 @@
-import getDealsWithRelevant from './getDealsWithRelevant';
+import prisma from '@/lib/prisma';
 
-const getDealWithPayments = async ({ deal }: { deal: string }) => {
-  return getDealsWithRelevant({ id: deal }).then((deals) => {
-    return deals[0];
-  });
-};
+async function getDealsWithPayments({ state }: { state: 0 | 1 }) {
+  return prisma.deal
+    .findMany({
+      where: {
+        state,
+      },
+      include: {
+        dealCharges: {
+          select: {
+            charge: true,
+          },
+        },
+        payments: {
+          select: {
+            date: true,
+            amount: true,
+            id: true,
+          },
+        },
+        dealTrades: true,
+        inventory: {
+          select: {
+            id: true,
+            make: true,
+            model: true,
+            year: true,
+          },
+        },
+        Account: {
+          select: {
+            person: true,
+          },
+        },
+      },
+    })
+    .then((res) => {
+      //   cast each payment for each deal to a date and then sort in ascending order
+      return res.map((deal) => {
+        return {
+          ...deal,
+          payments: deal.payments
+            .map((p) => {
+              return {
+                ...p,
+                date: new Date(p.date),
+              };
+            })
+            .sort((a, b) => a.date.getTime() - b.date.getTime()),
+        };
+      });
+    });
+}
 
-export default getDealWithPayments;
+export default getDealsWithPayments;
