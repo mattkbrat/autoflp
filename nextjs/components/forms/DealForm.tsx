@@ -65,6 +65,7 @@ import { Form } from '@/types/forms';
 import PersonCard from '@/components/display/PersonCard';
 import formatInventory from '@/utils/format/formatInventory';
 import { TextInput } from '@/components/Inputs/TextInput';
+import { BusinessData } from '@/types/BusinessData';
 
 // const debug = isDev;
 const debug = true && isDev; // Never have debug in production
@@ -78,7 +79,7 @@ const debug = true && isDev; // Never have debug in production
  * The selling price will be calculated from the inventory price, and the term and down payment
  * @returns JSX.Element
  */
-export function DealForm(props: { id: string }) {
+export function DealForm(props: { id: string; businessData: BusinessData }) {
   const [changes, setChanges] = useState<
     Partial<Deal> & {
       downOwed: number;
@@ -734,6 +735,7 @@ export function DealForm(props: { id: string }) {
                 {/* <RenderAmortizationSchedule chartId='printable-schedule'/> */}
                 {changes.sale_type === 'credit' && !!calculatedFinance && (
                   <AmortizationSchedule
+                    businessData={businessData}
                     defaultSchedule={{
                       principal: +(changes.totalCost ?? 0),
                       startDate:

@@ -1,3 +1,7 @@
+import AmortizationSchedule from '@/components/AmortizationSchedule';
+import isDev from '@/lib/isDev';
+import { getBusinessData } from '@/utils/formBuilder/functions';
+
 const ReceiptPage = ({
   params,
 }: {
@@ -5,5 +9,14 @@ const ReceiptPage = ({
     id: string;
   };
 }) => {
-  return <p>Receipt {params.id}</p>;
+  return (
+    <AmortizationSchedule
+      businessData={getBusinessData()}
+      defaultPrint={true}
+      id={params.id}
+      defaultShow={true}
+    />
+  );
 };
+
+export default ReceiptPage;

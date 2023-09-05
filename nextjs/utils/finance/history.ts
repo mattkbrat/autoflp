@@ -3,16 +3,10 @@ import financeFormat from './format';
 import formatDate from '@/utils/date/format';
 import type { DealWithPayments } from '@/types/prisma/deals';
 import { Override } from '@/types/Oerride';
+import { DealPayments } from '@/types/prisma/deals';
 
 function financeHistory(
-  pmt: NonNullable<
-    Override<
-      DealWithPayments[number],
-      {
-        date: Date | string;
-      }
-    >
-  >,
+  pmt: DealPayments,
 ): {
   date: string;
   owed: string;
@@ -25,6 +19,7 @@ function financeHistory(
     console.error({ pmt });
     return [];
   }
+
 
   let owed = +pmt.lien;
   let totalDelinquent = 0;

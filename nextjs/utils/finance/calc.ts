@@ -5,6 +5,7 @@ import _ from 'lodash';
 import formatDate from '@/utils/date/format';
 import { datePlusMonths } from '@/utils/date';
 import { FinanceCalcResult } from '@/types/Schedule';
+import { AnyObject } from 'chart.js/dist/types/basic';
 
 // L = Loan Amount
 // c = Monthly Interest Rate

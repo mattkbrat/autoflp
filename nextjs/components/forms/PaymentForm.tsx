@@ -415,7 +415,7 @@ const PaymentForm = ({
                 onClick: () => {
                   // Spawn a new window with the receipt
                   const win = window.open(
-                    `/receipt?id=${dealId}`,
+                    `/receipt/${dealId}`,
                     '_blank',
                     'noopener,noreferrer',
                   );

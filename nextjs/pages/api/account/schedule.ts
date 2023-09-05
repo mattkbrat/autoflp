@@ -1,15 +1,13 @@
-import {
-  FinanceCalcResult,
-  FinanceHistory,
-  ParsedAmortizationSchedule,
-  ScheduleRow,
-} from '@/types/Schedule';
+import { BusinessData } from '@/types/BusinessData';
+import { FinanceCalcResult, FinanceHistory, ParsedAmortizationSchedule, ScheduleRow } from '@/types/Schedule';
 import { amortizationSchedule, delinquent, financeHistory } from '@/utils/finance';
 import financeCalc from '@/utils/finance/calc';
 import { getBusinessData } from '@/utils/formBuilder/functions';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { getDealPayments } from '@/utils/prisma/payment';
 import { NextApiRequest, NextApiResponse } from 'next';
+import { ScheduleType } from '../schedule';
+
 
 type scheduleType = ScheduleRow[];
 
@@ -18,7 +16,6 @@ async function fetchCustomerAmortizationSchedule(
   res: NextApiResponse,
 ) {
   const { id } = req.query;
-  console.log(req.body, req.query);
 
   let scheduleFetchParams: {
     history?: FinanceHistory;
@@ -45,12 +42,13 @@ async function fetchCustomerAmortizationSchedule(
     delinquentBalance: undefined,
   };
 
+  let initialDate = new Date(req.body.initialDate);
   let calculatedFinance;
 
   if (typeof id === 'string') {
-    const fetchedPayments = await getDealPayments({ deal: id as string });
+    const fetchedPayments = await getDealPayments({deal: id as string});
 
-    if (!fetchedPayments) {
+    if (fetchedPayments === null) {
       return res.status(404).json({ error: 'No payments found' });
     }
 
@@ -70,13 +68,19 @@ async function fetchCustomerAmortizationSchedule(
         filingFees: +(
           fetchedPayments.dealCharges
             .filter((a) => a.charges?.name === 'Filing Fees')
-            .reduce((a, b) => a + +(b.charges?.amount || 0), 0) || 0
+            .reduce((a, b) => a + +(b.charges?.amount || 0), 0) ||
+          0
         ),
         apr: +fetchedPayments.apr,
         term: +fetchedPayments.term,
       },
       firstPayment: new Date(fetchedPayments.date),
     });
+
+    if (fetchedPayments === null) {
+      res.status(404);
+      return;
+    }
 
     const i = fetchedPayments.inventory;
 
@@ -85,6 +89,8 @@ async function fetchCustomerAmortizationSchedule(
       inventoryString: `${i.year.substring(2, 4)} ${i.make} ${i.model}`,
       delinquentBalance: delinquent(fetchedPayments).totalDelinquent,
     };
+
+    initialDate = new Date(fetchedPayments.date);
 
     scheduleFetchParams = {
       history: financeHistory(fetchedPayments),
@@ -130,7 +136,7 @@ async function fetchCustomerAmortizationSchedule(
   ];
 
   // Break the schedule into equal parts of 12
-  const scheduleParts: scheduleType[] = schedule?.schedule?.reduce(
+  const scheduleParts: ScheduleType[] = schedule?.schedule?.reduce(
     (acc: ScheduleRow[], curr: ScheduleRow, index: number) => {
       const chunkIndex = Math.floor(index / 12);
       if (!acc[chunkIndex]) {

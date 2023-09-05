@@ -7,11 +7,6 @@ async function getDealsWithPayments({ state }: { state: 0 | 1 }) {
         state,
       },
       include: {
-        dealCharges: {
-          select: {
-            charge: true,
-          },
-        },
         payments: {
           select: {
             date: true,

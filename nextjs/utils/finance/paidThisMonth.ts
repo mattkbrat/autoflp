@@ -1,11 +1,11 @@
-import { DealWithPayments } from '@/types/prisma/deals';
+import { DealPaymentsWithDate, DealWithPayments } from '@/types/prisma/deals';
 import { datePlusMonths } from '@/utils/date';
 
 const paidThisMonth = ({
   payments,
   atMonth,
 }: {
-  payments: NonNullable<DealWithPayments>[number]['payments'];
+  payments: DealPaymentsWithDate['payments'];
   atMonth: number;
 }) => {
   return (payments || [])

@@ -1,3 +1,5 @@
+'use client';
+
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
 import {
@@ -23,26 +25,26 @@ import {
 import formatDate from '@/utils/date/format';
 import financeFormat from '@/utils/finance/format';
 import { FinanceCalcResult, ParsedAmortizationSchedule } from '@/types/Schedule';
-import { BusinessData } from '@/types/BusinessData';
+import { BusinessData as BusinessDataType } from '@/types/BusinessData';
 import { print } from '@/utils/print';
 import { datePlusMonths } from '@/utils/date';
 import useSchedule from '@/hooks/useSchedule';
+import { getBusinessData } from '@/utils/formBuilder/functions';
+import getNextPaymentDate from '@/utils/finance/getNextPaymentDate';
 
 export function BusinessData({
   schedule,
-  businessData,
   formType,
   display = true,
+  business,
 }: {
   schedule?: ParsedAmortizationSchedule;
-  businessData?: BusinessData;
   formType?: string;
   display?: boolean;
+  business: BusinessDataType;
 }) {
-  const business = businessData;
-
-  if (!business) {
-    return <p></p>;
+  if (!business || !business.businessName) {
+    return <p>NO BUSINESS</p>;
   }
 
   return (
@@ -102,6 +104,7 @@ function AmortizationSchedule({
   defaultPrint = false,
   showBusinessData = true,
   chartId,
+  businessData,
 }: {
   defaultSchedule?: DefaultAmortizationSchedule;
   defaultSimple?: boolean;
@@ -112,6 +115,7 @@ function AmortizationSchedule({
   defaultPrint?: boolean;
   showBusinessData?: boolean;
   chartId?: string;
+  businessData?: BusinessDataType;
 }) {
   const [showSchedule, setShowSchedule] = useState<boolean>(defaultShow);
   const [simple, setSimple] = useState<boolean>(defaultSimple);
@@ -217,11 +221,12 @@ function AmortizationSchedule({
           <Tr h={'max-content'}>
             <Td>
               {formatDate(
-                new Date(
-                  new Date(schedule.startDate ?? new Date()).setMonth(
-                    new Date().getMonth() + 1,
-                  ),
-                ) || new Date(),
+                getNextPaymentDate({
+                  dealDate: schedule?.startDate,
+                  hasPaidThisMonth: (schedule?.paidToday || 0) > 0,
+                  monthsDelinquent:
+                    (schedule?.delinquentBalance || 0) / schedule.pmt || 0,
+                }),
                 'MMMM d, yyyy',
               )}
             </Td>
@@ -369,8 +374,8 @@ function AmortizationSchedule({
                         'b YYYY',
                       )}
                   </Text>
-                  {schedule && !schedule.hasHistory && showBusinessData && (
-                    <BusinessData schedule={schedule} />
+                  {showBusinessData && schedule && !schedule?.hasHistory && (
+                    <BusinessData business={businessData} schedule={schedule} />
                   )}
 
                   {!schedule?.hasHistory && (
@@ -514,7 +519,7 @@ function AmortizationSchedule({
             {schedule?.hasHistory && showBusinessData && (
               <>
                 <Divider />
-                <BusinessData schedule={schedule} />
+                <BusinessData business={businessData} schedule={schedule} />
               </>
             )}
           </TableContainer>
