@@ -1,10 +1,11 @@
-import { addressFromPerson, fullNameFromPerson } from './functions';
 import processArray from './functions/processArray';
-import { dealByIdType } from 'lib/prisma/deals';
+import { addressFromPerson } from '@/utils/format/addressFromPerson';
+import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
+import { Deal, DealWithRelevant } from '@/types/prisma/deals';
 
 const dealerID = process.env.DEALER_ID;
 
-function appFormBuilder(deal: dealByIdType) {
+function appFormBuilder(deal: DealWithRelevant) {
   if (typeof deal === 'undefined') {
     return [];
   }
@@ -32,8 +33,7 @@ function appFormBuilder(deal: dealByIdType) {
     deal?.inventory.color,
     deal?.date,
     personFullName,
-    // TODO: Add cosigner to deal
-    deal?.Account.secondary_account,
+    deal?.Account.cosigner,
     personAddress.street,
     personAddress.cityStateZip,
     deal?.creditors?.business_name,
