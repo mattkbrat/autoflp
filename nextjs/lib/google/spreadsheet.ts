@@ -21,11 +21,29 @@ const spreadsheet = async (sheetIndex = 0) => {
     scopes: SCOPES,
   });
 
-  const doc = new GoogleSpreadsheet(sheetID, serviceAccountAuth);
+  const tryConnection = async (_attempt = 0) => {
+    try {
+      const doc = new GoogleSpreadsheet(sheetID, serviceAccountAuth);
 
-  await doc.loadInfo(); // loads document properties and worksheets
+      await doc.loadInfo(); // loads document properties and worksheets
 
-  return doc.sheetsByIndex[sheetIndex];
+      return doc.sheetsByIndex[sheetIndex];
+    } catch (error) {
+      console.error(error);
+      if (_attempt < 3) {
+        setTimeout(() => {
+          console.log('Trying again...');
+          return tryConnection(_attempt + 1);
+        }, 1000);
+      } else {
+        throw new Error('Could not connect to Google Sheets');
+      }
+    }
+  };
+
+  console.info('New Google Sheets connection');
+
+  return tryConnection();
 };
 
 export default spreadsheet;
