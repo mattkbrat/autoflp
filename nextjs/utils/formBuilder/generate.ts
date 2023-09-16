@@ -61,7 +61,7 @@ async function generate({
   }
 
   const inputPath = inputFullPath(form);
-  const outputPath = outputFullPath(output);
+  // const outputPath = outputFullPath(output);
 
   try {
     // throw if form does not exist
@@ -72,40 +72,56 @@ async function generate({
     // console.log({ data, dataObj });
 
     // Wrap the pdftk call in a promise so we can await it
-    const presigned = (await new Promise((resolve) => {
-      pdftk
+    // const presigned = (await new Promise((resolve) => {
+    //   pdftk
+    //     .input(inputPath)
+    //     .fillForm(dataObj)
+    //     .flatten()
+    //     .output()
+    //     .then((buffer: any) => {
+    //       // write to file
+    //       // fs.writeFileSync(outputPath, buffer);
+
+    //       // upload to s3
+    //       return upload({
+    //         bucket,
+    //         filename: output,
+    //         file: buffer,
+    //       });
+    //     })
+    //     .then((url) => {
+    //       resolve(url);
+    //     })
+    //     .catch((error: any) => {
+    //       throw error;
+    //     });
+    // })) as string;
+
+    pdftk.configure({
+      bin: '/usr/local/bin/pdftk',
+      tempDir: '/app/data/tmp'
+    });
+
+    try {
+    
+      const buffer = await pdftk
         .input(inputPath)
         .fillForm(dataObj)
         .flatten()
-        .output()
-        .then((buffer: any) => {
-          // write to file
-          // fs.writeFileSync(outputPath, buffer);
 
-          // upload to s3
-          return upload({
-            bucket,
-            filename: output,
-            file: buffer,
-          });
-        })
-        .then((url) => {
-          resolve(url);
-        })
-        .catch((error: any) => {
-          throw error;
+        console.log('buffer', buffer);
+
+
+        // upload to s3
+        return await upload({
+          bucket,
+          filename: output,
+          file: await buffer.output(),
         });
-    })) as string;
-
-    // The below is not working, so we're using the above for now
-
-    console.log('presignedUrl', presigned);
-
-    return presigned;
-
-    // return fs.readdirSync(formsPath).filter((file) => {
-    //   return file.includes(output);
-    // });
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   } catch (error) {
     console.error(error);
     return null;

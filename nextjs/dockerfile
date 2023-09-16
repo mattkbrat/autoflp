@@ -16,6 +16,9 @@ RUN echo '#!/bin/sh' > /usr/local/bin/pdftk
 RUN echo 'java -jar /usr/local/bin/pdftk.jar "$@"' >> /usr/local/bin/pdftk
 RUN chmod 775 /usr/local/bin/pdftk*
 
+# curl
+# RUN apk add curl
+
 WORKDIR /app
 
 # Install dependencies based on the preferred package manager
@@ -26,6 +29,10 @@ RUN yarn install
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+# Copy the pdftk from the deps
+COPY --from=deps /usr/local/bin/pdftk* /usr/local/bin/
+# curl
+# COPY --from=deps /usr/bin/curl* /usr/bin/
 COPY . .
 
 RUN yarn prisma:generate
@@ -56,8 +63,12 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/.next/server ./.next/server
 COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma/schema
+# Copy the pdftk from the builder
+COPY --from=builder --chown=nextjs:nodejs /usr/local/bin/pdftk* /usr/local/bin/
+# curl
+# COPY --from=builder --chown=nextjs:nodejs /usr/bin/curl* /usr/bin/
 
-# USER nextjs (We need root currently for fs permissions)
+USER nextjs
 
 EXPOSE 3000
 

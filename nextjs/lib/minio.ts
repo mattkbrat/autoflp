@@ -20,7 +20,11 @@ if (useSSL !== 'true' && useSSL !== 'false') {
   throw new Error('Use SSL is not a boolean');
 }
 
+console.info(`Minio environment variables set: ${endPoint}:${portNumber}`);
+
+
 const sslBool = useSSL === 'true';
+
 
 // Instantiate the minio client with the endpoint
 // and access keys as shown below.
