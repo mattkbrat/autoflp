@@ -28,8 +28,13 @@ export function downloadZip(forms: Form[]) {
 
           const content = await fetch(url, {
             method: 'GET',
+            mode: 'cors',
             headers: {
               'Content-Type': 'application/pdf',
+              origin: '*',
+              // allow s3 origin
+              'x-amz-acl': 'public-read',
+              'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
             },
           });
 

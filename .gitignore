@@ -120,3 +120,4 @@ dist
 drive-1608579284117-8fd89e1a81b7.json
 *.sql
 *.utf8
+*rsa*

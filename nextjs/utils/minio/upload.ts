@@ -4,6 +4,11 @@ const bucketName = 'filled';
 
 const validForOneDay = 24 * 60 * 60;
 
+const region = process.env.MINIO_REGION;
+const bucketId = process.env.MINIO_BUCKET_ID;
+
+const filledbucket = `filled-${bucketId}`;
+
 export const upload = async ({
   bucket = bucketName,
   filename,
@@ -19,22 +24,20 @@ export const upload = async ({
 
   // check that the bucket exists
 
-  await minioClient.bucketExists('filled', function(err, exists) {
+  await minioClient.bucketExists('filled', function (err, exists) {
     if (err) {
-      return console.log(err)
+      return console.log(err);
     }
     if (!exists) {
-      return minioClient.makeBucket('filled', 'us-east-1', function(err) {
+      return minioClient.makeBucket(filledbucket, region, function (err) {
         if (err) {
-          return console.log('Error creating bucket.', err)
+          return console.log('Error creating bucket.', err);
         }
-        console.log('Bucket created successfully in "us-east-1".')
-      })
+        console.log('Bucket created successfully in', region);
+      });
     }
-    console.log('Bucket exists.')
-  })
-
-
+    console.log('Bucket exists.');
+  });
 
   try {
     await minioClient.putObject(bucket, filename, file, {
@@ -49,10 +52,8 @@ export const upload = async ({
 
   try {
     return await minioClient.presignedGetObject(bucket, filename, validForOneDay);
-    
   } catch (error) {
     console.error(`Error getting presigned url for ${filename}`, error);
     return null;
   }
-
 };

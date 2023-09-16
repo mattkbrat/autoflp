@@ -5,8 +5,9 @@ const port = process.env.MINIO_PORT;
 const useSSL = process.env.MINIO_USE_SSL;
 const accessKey = process.env.MINIO_ACCESS_KEY;
 const secretKey = process.env.MINIO_SECRET_KEY;
+const region = process.env.MINIO_REGION;
 
-if (!endPoint || !port || !useSSL || !accessKey || !secretKey) {
+if (!endPoint || !port || !useSSL || !accessKey || !secretKey || !region) {
   throw new Error('Minio environment variables not set');
 }
 
@@ -22,9 +23,7 @@ if (useSSL !== 'true' && useSSL !== 'false') {
 
 console.info(`Minio environment variables set: ${endPoint}:${portNumber}`);
 
-
 const sslBool = useSSL === 'true';
-
 
 // Instantiate the minio client with the endpoint
 // and access keys as shown below.
@@ -34,4 +33,5 @@ export const minioClient = new Client({
   useSSL: sslBool,
   accessKey,
   secretKey,
+  region,
 });

@@ -97,27 +97,21 @@ async function generate({
     //     });
     // })) as string;
 
-    pdftk.configure({
-      bin: '/usr/local/bin/pdftk',
-      tempDir: '/app/data/tmp'
-    });
+    // if (!isDev) {
+    //   pdftk.configure({
+    //     bin: '/usr/local/bin/pdftk',
+    //     tempDir: '/app/data/tmp',
+    //   });
+    // }
 
     try {
-    
-      const buffer = await pdftk
-        .input(inputPath)
-        .fillForm(dataObj)
-        .flatten()
+      const buffer = await pdftk.input(inputPath).fillForm(dataObj).flatten();
 
-        console.log('buffer', buffer);
-
-
-        // upload to s3
-        return await upload({
-          bucket,
-          filename: output,
-          file: await buffer.output(),
-        });
+      return await upload({
+        bucket,
+        filename: output,
+        file: await buffer.output(),
+      });
     } catch (error) {
       console.error(error);
       return null;
