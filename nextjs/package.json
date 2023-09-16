@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint --ext .ts,.tsx --fix .",
     "format": "next lint && prettier --write .",
-    "prettier": "prettier --write ."
+    "prettier": "prettier --write .",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@chakra-ui/next-js": "^2.1.4",

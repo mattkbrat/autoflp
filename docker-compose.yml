@@ -1,0 +1,44 @@
+version: '3.9'
+
+networks:
+  web:
+    external: true
+  
+volumes:
+  app: 
+
+services:
+  autoflp:
+    container_name: autoflp
+    build:
+      context: ${DOCKERCONFDIR}/autoflp/nextjs
+      dockerfile: Dockerfile
+      progress: plain
+      args:
+        forms: "${DOCKERCONFDIR}/autoflp/forms"
+    environment:
+      PGID: "1000"
+      PUID: "1000"
+      TZ: America/Denver
+      UMASK_SET: "022"
+    networks:
+      - web
+    ports:
+    - mode: ingress
+      host_ip: 0.0.0.0
+      target: 3000
+      published: ${AUTOFLP_PORT_3000}
+      protocol: tcp
+    restart: unless-stopped
+    volumes:
+    - type: bind
+      source: /etc/localtime
+      target: /etc/localtime
+      read_only: true
+      bind:
+        create_host_path: true
+    - type: bind
+      source: ${DOCKERCONFDIR}/autoflp
+      target: /config
+      bind:
+        create_host_path: true

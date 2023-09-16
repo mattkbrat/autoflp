@@ -117,3 +117,5 @@ dist
 *.ico
 *.jpg
 1946.png
+*.sql
+*.utf8
