@@ -3,16 +3,19 @@ import fs from 'fs';
 import pdftk from 'node-pdftk';
 import { Form } from '@/types/forms';
 import { formsPath, inputFullPath, outputFullPath } from '@/lib/paths';
+import { upload } from '@/utils/minio/upload';
 
 async function generate({
   form,
   output,
   data,
   concat,
+  bucket = 'filled',
 }: {
   form: Form;
   output: string;
   data: string[] | string[][];
+  bucket?: string;
   concat?: {
     concat: true;
     lookup: string;
@@ -69,7 +72,7 @@ async function generate({
     // console.log({ data, dataObj });
 
     // Wrap the pdftk call in a promise so we can await it
-    await new Promise((resolve) => {
+    const presigned = (await new Promise((resolve) => {
       pdftk
         .input(inputPath)
         .fillForm(dataObj)
@@ -77,21 +80,32 @@ async function generate({
         .output()
         .then((buffer: any) => {
           // write to file
-          fs.writeFileSync(outputPath, buffer);
+          // fs.writeFileSync(outputPath, buffer);
+
+          // upload to s3
+          return upload({
+            bucket,
+            filename: output,
+            file: buffer,
+          });
         })
-        .then(() => {
-          resolve(null);
+        .then((url) => {
+          resolve(url);
         })
         .catch((error: any) => {
           throw error;
         });
-    });
+    })) as string;
 
     // The below is not working, so we're using the above for now
 
-    return fs.readdirSync(formsPath).filter((file) => {
-      return file.includes(output);
-    });
+    console.log('presignedUrl', presigned);
+
+    return presigned;
+
+    // return fs.readdirSync(formsPath).filter((file) => {
+    //   return file.includes(output);
+    // });
   } catch (error) {
     console.error(error);
     return null;

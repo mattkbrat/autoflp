@@ -19,6 +19,8 @@ function processArray(input: any): string[] {
         case 'string':
           if (['null', 'undefined'].includes(item.toLowerCase())) {
             result.push('');
+          } else if (!item) {
+            result.push('');
           } else {
             result.push(item.toUpperCase());
           }

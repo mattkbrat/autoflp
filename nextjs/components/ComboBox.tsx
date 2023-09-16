@@ -12,7 +12,6 @@ import {
   ButtonGroup,
   Input,
   InputGroup,
-  InputProps,
   InputRightElement,
   ListItem,
   Stack,
@@ -25,13 +24,12 @@ function DropdownCombobox({
   options,
   setValue,
   placeholder,
-  ...inputProps
 }: {
   options: string[];
   setValue: (arg1: string | number) => void;
   value?: string | number;
   placeholder?: string;
-} & InputProps) {
+}) {
   const [inputItems, setInputItems] = React.useState(options);
 
   const searcher = useMemo(() => new Searcher(options || []), [options]);
@@ -48,7 +46,7 @@ function DropdownCombobox({
     selectItem,
   } = useCombobox({
     items: inputItems,
-    onInputValueChange: ({ inputValue }: { inputValue: string }) => {
+    onInputValueChange: ({ inputValue }) => {
       if (!inputValue) {
         setInputItems(options);
         return;
@@ -104,12 +102,7 @@ function DropdownCombobox({
       </Text>
       <Box display={'flex'} position={'relative'} w={'max-content'}>
         <InputGroup position={'relative'}>
-          <Input
-            {...inputProps}
-            p={2}
-            {...getInputProps()}
-            data-testid="combobox-input"
-          />
+          <Input p={2} {...getInputProps()} data-testid="combobox-input" />
           <InputRightElement w={'max-content'}>
             <ButtonGroup>
               <Button

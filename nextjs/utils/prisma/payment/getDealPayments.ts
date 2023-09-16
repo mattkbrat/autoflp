@@ -71,7 +71,13 @@ const getDealPayments = async ({ deal }: { deal: string }) => {
   });
 };
 
-export const getDealsWithPayments = async ({ state }: { state?: 0 | 1 }) => {
+export const getDealsWithPayments = async ({
+  state,
+  limit,
+}: {
+  state?: 0 | 1;
+  limit?: number;
+}) => {
   return prisma.deal.findMany({
     where: {
       state,
@@ -79,6 +85,7 @@ export const getDealsWithPayments = async ({ state }: { state?: 0 | 1 }) => {
     orderBy: {
       account: 'desc',
     },
+    take: limit,
     include: {
       dealCharges: {
         select: {

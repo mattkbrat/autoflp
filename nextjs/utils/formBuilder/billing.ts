@@ -17,22 +17,24 @@ import { concat } from 'lodash';
 import { formsPath } from '@/lib/paths';
 import fs from 'fs/promises';
 import path from 'path';
+import deleteFromBucket from '@/utils/minio/deleteFromBucket';
+import financeFormat from '@/utils/finance/format';
 
 const chunkSize = 3;
 
-const deleteExistingBillingFiles = async () => {
-  // delete all existing files in the output folder
-  return await fs.readdir(formsPath).then(async (files) => {
-    files = files.filter((file) => file.includes('billing'));
-    if (files.length > 0) return;
-    await Promise.all(
-      files.map((file) => {
-        const outputPath = path.join(formsPath, file);
-        return fs.unlink(path.join(outputPath, file));
-      }),
-    );
-  });
-};
+// const deleteExistingBillingFiles = async () => {
+//   // delete all existing files in the output folder
+//   return await fs.readdir(formsPath).then(async (files) => {
+//     files = files.filter((file) => file.includes('billing'));
+//     if (files.length > 0) return;
+//     await Promise.all(
+//       files.map((file) => {
+//         const outputPath = path.join(formsPath, file);
+//         return fs.unlink(path.join(outputPath, file));
+//       }),
+//     );
+//   });
+// };
 
 async function generateBillingStatements() {
   const BusinessData = getBusinessData();
@@ -42,8 +44,8 @@ async function generateBillingStatements() {
   const dealsToClose: string[] = [];
 
   const [deals] = await Promise.all([
-    getDealsWithPayments({ state: 1 }),
-    deleteExistingBillingFiles(),
+    getDealsWithPayments({ state: 1, limit: 3 }),
+    deleteFromBucket('billing'),
   ]);
 
   const chunkedDeals: DealsPayments[number][][] = [];
@@ -142,6 +144,16 @@ async function generateBillingStatements() {
       const paymentPayment = history.map((h) => h.paid).join('\n') + '\n';
       const paymentEndBal = history.map((h) => h.owed).join('\n') + '\n';
 
+      if (
+        !customer.pmt ||
+        !customer.lien ||
+        +customer.pmt <= 2 ||
+        +history[history.length - 1]?.balance <= 5
+      ) {
+        dealsToClose.push(customer.id);
+        continue;
+      }
+
       thisStatement = [
         BusinessData.businessName,
         BusinessData.street,
@@ -155,8 +167,12 @@ async function generateBillingStatements() {
           ? ''
           : monthsDelinquent === 1
           ? 'You are 1 month delinquent'
-          : `You are ${monthsDelinquent} months delinquent`,
-        `Next payment due: ${nextPayment}`,
+          : `Total delinquent balance of ${financeFormat({
+              num: calculatedDelinquent.totalDelinquent,
+            })} (${monthsDelinquent} months delinquent)`,
+        `Next payment of ${financeFormat({
+          num: customer.pmt,
+        })} is due on ${nextPayment}`,
         BusinessData.businessName,
         BusinessData.businessMotto,
         BusinessData.phoneNumber,
@@ -194,11 +210,27 @@ async function generateBillingStatements() {
 
   dealsToClose.length !== 0 && (await closeDeals({ deals: dealsToClose }));
 
-  return await generate({
-    form: 'billing',
-    data: allStatements,
-    output: 'billing',
-  });
+  // const urls = [];
+  //
+  // for (const statement of allStatements) {
+  //   urls.push await generate({
+  //     form: 'billing',
+  //     data: allStatements,
+  //     output: 'billing',
+  //     bucket: 'billing',
+  //   });
+  // }
+
+  return await Promise.all(
+    allStatements.map(async (statement, index) => {
+      return generate({
+        form: 'billing',
+        data: statement,
+        output: `billing_${index}`,
+        bucket: 'billing',
+      });
+    }),
+  );
 }
 
 export default generateBillingStatements;

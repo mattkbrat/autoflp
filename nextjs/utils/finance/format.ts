@@ -2,7 +2,7 @@ function financeFormat({
   num,
   withoutCurrency = true,
 }: {
-  num?: number;
+  num?: number | string;
   withoutCurrency?: boolean;
 }) {
   if (typeof num === 'undefined') {
@@ -15,7 +15,7 @@ function financeFormat({
     minimumFractionDigits: 2,
   });
 
-  const formatted = formatter.format(num);
+  const formatted = formatter.format(+num);
 
   if (withoutCurrency) {
     return formatted.replace('$', '').trim();

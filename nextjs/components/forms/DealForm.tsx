@@ -68,7 +68,7 @@ import { TextInput } from '@/components/Inputs/TextInput';
 import { BusinessData } from '@/types/BusinessData';
 
 // const debug = isDev;
-const debug = true && isDev; // Never have debug in production
+const debug = false && isDev; // Never have debug in production
 
 /**
  * This page will be rendered at /deal
@@ -735,7 +735,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
                 {/* <RenderAmortizationSchedule chartId='printable-schedule'/> */}
                 {changes.sale_type === 'credit' && !!calculatedFinance && (
                   <AmortizationSchedule
-                    businessData={businessData}
+                    businessData={props.businessData}
                     defaultSchedule={{
                       principal: +(changes.totalCost ?? 0),
                       startDate:

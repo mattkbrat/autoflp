@@ -1,9 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { Payment } from '@/types/prisma/payments';
 import { DealsPayments } from '@/types/prisma/deals';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import { delinquent } from '@/utils/finance/index';
-import generateBillingStatements from '@/utils/formBuilder/billing';
 import { getDealsWithPayments } from '@/utils/prisma/payment/getDealPayments';
 
 export type DelinquentAccount = {

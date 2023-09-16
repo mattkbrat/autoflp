@@ -7,16 +7,20 @@ function generateOutputFilename({
   deal,
   person,
   form,
+  fullName,
 }: {
-  deal?: Deal;
+  deal?: {
+    date: Date | string;
+  };
   person?: Person | null;
+  fullName?: string;
   form: Form | Form[];
 }): string | string[] {
   if (person === null || typeof person === 'undefined') {
     throw 'Must provide a person';
   }
 
-  const fullName = fullNameFromPerson(person);
+  fullName = fullName || person ? fullNameFromPerson(person || {}) : 'No name';
 
   const date = formatDate(deal?.date ?? new Date(), 'MMMM d, yyyy');
 

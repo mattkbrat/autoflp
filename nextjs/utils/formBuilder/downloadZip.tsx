@@ -3,7 +3,11 @@ import JSZip from 'jszip';
 import { Form } from '@/types/forms';
 
 export function downloadZip(forms: Form[]) {
-  let foldeNname: string;
+  if (forms.length === 0) {
+    return null;
+  }
+
+  const zipFile = Object.keys(forms[0])[0].split('-')[0].trim();
 
   const createZipPromise = new Promise((resolve, reject) => {
     const zip = new JSZip();
@@ -20,13 +24,7 @@ export function downloadZip(forms: Form[]) {
             return;
           }
 
-          if (!foldeNname) {
-            foldeNname = title.split('-')[0].trim();
-          }
-
           const filename = title.split('-')[1]?.trim();
-
-          url = `forms/filled/${url}`;
 
           const content = await fetch(url, {
             method: 'GET',
@@ -50,7 +48,7 @@ export function downloadZip(forms: Form[]) {
     const zip = value as JSZip;
 
     zip.generateAsync({ type: 'blob' }).then(function (content: any) {
-      saveAs(content, foldeNname ? `${foldeNname}.zip` : 'forms.zip');
+      saveAs(content, zipFile ? `${zipFile}.zip` : 'forms.zip');
     });
   });
 
