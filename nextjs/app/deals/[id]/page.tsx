@@ -5,6 +5,8 @@ import PersonForm from '@/components/forms/PersonForm';
 import AccountForm from '@/components/forms/AccountForm';
 import getPerson from '@/utils/prisma/person/getPerson';
 import { getAccountWithRelevant } from '@/utils/prisma/account';
+import { getRequestCookie } from '@/utils/auth/getRequestCookie';
+import { cookies } from 'next/headers';
 
 export const generateMetadata = async ({ params }: { params: { id: string } }) => {
   const person = await getPerson({ id: params.id });
@@ -22,6 +24,11 @@ export default async function ManageAccountPage({
 }: {
   params: { id?: string };
 }) {
+  const user = await getRequestCookie(cookies());
+  if (!user) {
+    redirect('/auth/login');
+  }
+
   const id = params.id;
 
   if (!id) {

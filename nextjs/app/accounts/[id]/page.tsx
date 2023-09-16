@@ -4,6 +4,8 @@ import IndividualAccountPage from '@/app/accounts/[id]/IndividualAccountPage';
 import { getAccountWithRelevant } from '@/utils/prisma/account';
 import formatInventory from '@/utils/format/formatInventory';
 import { SimpleDeal } from '@/types/prisma/deals';
+import { getRequestCookie } from '@/utils/auth/getRequestCookie';
+import { cookies } from 'next/headers';
 
 const AccountWithIdPage = async ({
   params,
@@ -12,6 +14,11 @@ const AccountWithIdPage = async ({
     id: string;
   };
 }) => {
+  const user = await getRequestCookie(cookies());
+  if (!user) {
+    redirect('/auth/login');
+  }
+
   const account = await getAccountWithRelevant({ id: params.id });
 
   if (!account) {
