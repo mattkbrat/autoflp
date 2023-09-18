@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getRequestCookie } from '@/utils/auth/getRequestCookie';
 import { cookies } from 'next/headers';
+import HomePage from '@/app/HomePage';
 
 const Page = async () => {
   const user = await getRequestCookie(cookies());
@@ -8,7 +9,7 @@ const Page = async () => {
     redirect('/auth/login');
   }
 
-  return <div> Home </div>;
+  return <HomePage />;
 };
 
 export default Page;

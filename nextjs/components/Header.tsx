@@ -166,23 +166,45 @@ export default function Header({
               display: 'inline-block',
               width: '100%',
             }}
-            href={'/map'}
+            href={'/admin'}
           >
-            Map
+            Admin
           </Link>
         </ListItem>
-
         <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
           <Link
             style={{
               display: 'inline-block',
               width: '100%',
             }}
-            href={'/contact'}
+            href={'/accounts'}
           >
-            Contact
+            Accounts
           </Link>
         </ListItem>
+        <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
+          <Link
+            style={{
+              display: 'inline-block',
+              width: '100%',
+            }}
+            href={'/inventory'}
+          >
+            Inventory
+          </Link>
+        </ListItem>
+
+        {/*<ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>*/}
+        {/*  <Link*/}
+        {/*    style={{*/}
+        {/*      display: 'inline-block',*/}
+        {/*      width: '100%',*/}
+        {/*    }}*/}
+        {/*    href={'/contact'}*/}
+        {/*  >*/}
+        {/*    Contact*/}
+        {/*  </Link>*/}
+        {/*</ListItem>*/}
         {user?.role?.toLowerCase() === 'admin' && (
           <ListItem w={'full'} display={!collapseNav ? 'block' : 'none'}>
             <Link
