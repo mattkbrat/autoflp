@@ -2,26 +2,20 @@ import prisma from '@/lib/prisma';
 
 import { getAllCreditorDefaultCharges } from '@/utils/prisma/charge';
 import { Deal } from '@/types/prisma/deals';
-import getDeal from '@/utils/prisma/deal/getDeal';
-import { getAccount } from '@/utils/prisma/account';
 import notifyDeal from '@/utils/pushover/deal';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import formatInventory from '@/utils/format/formatInventory';
-import {
-  createInventory,
-  createTrade,
-  getInventory,
-} from '@/utils/prisma/inventory';
-import {
-  closeDeals,
-  createDealSalesman,
-  getCurrentDealsWithInventory,
-} from '@/utils/prisma/deal';
 import { Inventory } from '@/types/prisma/inventory';
 import { Salesman } from '@/types/prisma/person';
-import createDealCharge from '@/utils/prisma/charge/createDealCharge';
-import { generate } from '@/utils/formBuilder';
 import { randomUUID } from 'crypto';
+import { closeDeals } from '@/utils/prisma/deal/index';
+
+// To create a new deal, we first to need to check:
+// 1) If the vehicle being sold belongs to an open account.
+// 1a) If the vehicle being sold belongs to an open account, we need to close the account.
+// 2) If the deal already exists (by checking the inventoryId and accountID)
+// 2a) If the deal does not exist, we need to create it.
+// 2b) If the deal exists, we need to update it.
 
 const createDeal = async ({
   deal,
@@ -34,283 +28,229 @@ const createDeal = async ({
   salesmen?: Salesman[];
   cosigner?: string;
 }) => {
-  console.log(deal);
-
-  const inventoryIdIsVin = deal.inventoryId.length === 17;
-
   const dealId = randomUUID();
 
-  const transaction = await prisma.$transaction(async (tx) => {
-    await tx.account.update({
-      where: {
-        id: deal.account,
-      },
-      data: {
-        cosigner: cosigner,
-      },
-    });
-
-    const dealTransaction = await tx.deal.upsert({
-      where: {
-        date_account_inventoryId: {
-          date: deal.date,
-          account: deal.account,
-          inventoryId: deal.inventoryId,
-        },
-      },
-      update: { ...deal },
-      create: { ...deal, id: dealId },
-      include: {
-        inventory: true,
-        Account: {
-          include: {
-            person: true,
-          },
-        },
-      },
-    });
-
-    // const closedDeals = await tx.deal.updateMany({
-    //   where: {
-    //     inventoryId: deal.inventoryId,
-    //     state: 1,
-    //     id: {
-    //       not: dealTransaction.id,
-    //     },
-    //   },
-    //   data: {
-    //     state: 0,
-    //   },
-    // });
-    //
-    // Promise.all(
-    //   closedDeals.map(async (closedDeal) => {
-    //     await notifyDeal({
-    //       fullName: fullNameFromPerson(closedDeal.Account.person),
-    //       invString: formatInventory(closedDeal.inventory),
-    //       dealId: closedDeal.id,
-    //       amount: +closedDeal.cash,
-    //       type: 'CLOSE',
-    //     });
-    //   }),
-    // );
-
-    const closedDeals = await prisma.$transaction(async (tx) => {
-      const selectedDeals = await tx.deal.findMany({
-        where: {
-          inventoryId: deal.inventoryId,
-          state: 1,
-          id: {
-            not: dealTransaction.id,
-          },
-        },
+  const openDeals = await prisma.deal.findMany({
+    where: {
+      state: 1,
+      inventoryId: deal.inventoryId,
+    },
+    select: {
+      id: true,
+      account: true,
+      inventory: {
         select: {
+          state: true,
           id: true,
-          cash: true,
-          Account: {
-            select: {
-              person: true,
-            },
-          },
-          inventory: true,
         },
-      });
+      },
+    },
+  });
 
-      if (selectedDeals.length === 0) {
-        return [];
-      }
+  const currentOpenDeal = openDeals.find(
+    (openDeal) => openDeal.account === deal.account,
+  );
 
-      await tx.deal
-        .updateMany({
+  let dealsToClose = (
+    !!currentOpenDeal
+      ? openDeals.filter((openDeal) => openDeal.account !== deal.account)
+      : openDeals
+  ).map((d) => d.id);
+
+  if (dealsToClose?.length > 0) {
+    await closeDeals({ deals: dealsToClose });
+  }
+
+  if (!!currentOpenDeal) {
+    const updateOrDeletePromises: Promise<any>[] = [
+      //   Delete trades
+      prisma.dealTrade.deleteMany({
+        where: {
+          deal: currentOpenDeal.id,
+        },
+      }),
+
+      // Delete charges
+      prisma.dealCharge.deleteMany({
+        where: {
+          deal: currentOpenDeal.id,
+        },
+      }),
+
+      // Delete salesmen
+      prisma.dealSalesman.deleteMany({
+        where: {
+          deal: currentOpenDeal.id,
+        },
+      }),
+    ];
+
+    // If the current inventory is not closed, close it.
+
+    const inventoryIsClosed = currentOpenDeal.inventory.state === 0;
+
+    if (!inventoryIsClosed) {
+      updateOrDeletePromises.push(
+        prisma.inventory.update({
           where: {
-            id: {
-              in: selectedDeals.map((deal) => deal.id),
-            },
+            id: currentOpenDeal.inventory.id,
           },
           data: {
             state: 0,
           },
-        })
-        .then(async () => {
-          await Promise.all(
-            selectedDeals.map(async (closedDeal) => {
-              await notifyDeal({
-                fullName: fullNameFromPerson(closedDeal.Account.person),
-                invString: formatInventory(closedDeal.inventory),
-                dealId: closedDeal.id,
-                amount: +closedDeal.cash,
-                type: 'CLOSE',
-              });
-            }),
-          );
-        });
-
-      return selectedDeals;
-    });
-
-    console.log({ closedDeals });
-
-    const inventoryTransaction = await tx.inventory.update({
-      where: inventoryIdIsVin
-        ? { vin: deal.inventoryId }
-        : {
-            id: deal.inventoryId,
-          },
-      data: {
-        state: 0,
-      },
-    });
-
-    // Delete existing trades in the case of an updated deal not having the same trade line.
-    await tx.dealTrade.deleteMany({
-      where: {
-        deal: dealTransaction.id,
-      },
-    });
-
-    if (Array.isArray(trades)) {
-      for (const trade of trades) {
-        try {
-          const inventory = trade;
-
-          if (!inventory) {
-            continue;
-          }
-
-          const tradeValue = inventory.cash || inventory.credit || '0';
-
-          inventory.cash = '0';
-          inventory.credit = '0';
-
-          await tx.dealTrade.upsert({
-            where: {
-              deal_vin: {
-                deal: dealTransaction.id,
-                vin: inventory.vin,
-              },
-            },
-            update: {
-              value: (+tradeValue).toFixed(2),
-            },
-            create: {
-              id: randomUUID(),
-              deal: dealTransaction.id,
-              vin: inventory.vin,
-              value: (+tradeValue).toFixed(2),
-            },
-          });
-        } catch (error) {
-          console.error(error);
-          throw 'Error creating deal trade';
-        }
-      }
+        }),
+      );
     }
+    await Promise.all(updateOrDeletePromises);
+  }
 
-    for (const salesman of salesmen || []) {
-      console.log({ salesman });
+  // Update the cosigner
 
-      await tx.dealSalesman.upsert({
-        where: {
-          deal_salesman: {
-            deal: dealTransaction.id,
-            salesman: salesman,
-          },
-        },
-        update: {},
-        create: {
-          deal: dealTransaction.id,
-          salesman: salesman,
-          id: randomUUID(),
-        },
-      });
-    }
-
-    if (deal.creditor === null) {
-      return {
-        deal: dealTransaction,
-        inventory: inventoryTransaction,
-        closed: closedDeals,
-      };
-    }
-
-    // Delete the charges in the case of an updated creditor having different charges.
-    await tx.dealCharge.deleteMany({
-      where: {
-        deal: dealTransaction.id,
-      },
-    });
-
-    const creditor_charges = await getAllCreditorDefaultCharges({
-      creditor: deal.creditor,
-    });
-
-    for (const charge of creditor_charges) {
-      const note = charge.charge_default_charge_chargeTocharge.name;
-      await tx.dealCharge.upsert({
-        where: {
-          deal_charge: {
-            deal: dealTransaction.id,
-            charge: charge.charge_default_charge_chargeTocharge.id,
-          },
-        },
-        update: {
-          note,
-          date: deal.date,
-        },
-        create: {
-          deal: dealTransaction.id,
-          charge: charge.charge_default_charge_chargeTocharge.id,
-          note,
-          id: randomUUID(),
-          date: dealTransaction.date,
-        },
-      });
-    }
-
-    const account = dealTransaction.Account;
-
-    if (!dealTransaction.inventory) {
-      console.error('No inventory found for deal', dealTransaction.id);
-      throw new Error();
-    }
-
-    if (!account || !account.person) {
-      console.error('No account found for deal', dealTransaction.id);
-      throw new Error();
-    }
-
-    return {
-      deal: dealTransaction,
-      inventory: inventoryTransaction,
-      closed: closedDeals,
-    };
+  await prisma.account.update({
+    where: {
+      id: deal.account,
+    },
+    data: {
+      cosigner: cosigner,
+    },
   });
 
-  const { deal: createdDeal, inventory: createdInventory } = transaction;
+  const existingDeal = await prisma.deal.findMany({
+    where: {
+      inventoryId: deal.inventoryId,
+      account: deal.account,
+      date: deal.date,
+    },
+  });
 
-  const formattedInventory = formatInventory(createdInventory);
+  const newDeal = await prisma.deal.upsert({
+    where: {
+      id: existingDeal.length > 0 ? existingDeal[0].id : dealId,
+    },
+    update: { ...deal },
+    create: { ...deal, id: dealId },
+    include: {
+      inventory: true,
+      Account: {
+        include: {
+          person: true,
+        },
+      },
+    },
+  });
+
+  const inventory = await prisma.inventory.update({
+    where: {
+      id: newDeal.inventory.id,
+    },
+    data: {
+      state: 0,
+    },
+  });
+  //   Create the trades, salesmen, and charges
+
+  const finishingPromises: Promise<any>[] = [];
+
+  if (newDeal.creditor) {
+    const dealCharges = getAllCreditorDefaultCharges({
+      creditor: newDeal.creditor,
+    }).then(async (charges) => {
+      return await Promise.all(
+        charges.map(async (charge) => {
+          const note = charge.charge_default_charge_chargeTocharge.name;
+          return prisma.dealCharge.create({
+            data: {
+              deal: newDeal.id,
+              charge: charge.charge_default_charge_chargeTocharge.id,
+              note,
+              id: randomUUID(),
+              date: newDeal.date,
+            },
+          });
+        }),
+      );
+    });
+    finishingPromises.push(dealCharges);
+  }
+
+  if (salesmen) {
+    const salesmenPromises = Promise.all(
+      salesmen.map(async (salesman) => {
+        return await prisma.dealSalesman.upsert({
+          where: {
+            deal_salesman: {
+              deal: newDeal.id,
+              salesman: salesman,
+            },
+          },
+          update: {},
+          create: {
+            deal: newDeal.id,
+            salesman: salesman,
+            id: randomUUID(),
+          },
+        });
+      }),
+    );
+    finishingPromises.push(salesmenPromises);
+  }
+
+  if (trades) {
+    const tradesPromises = Promise.all(
+      trades.map(async (trade) => {
+        const tradeValue = trade.cash || trade.credit || '0';
+        const invObject = {
+          state: 0,
+          id: randomUUID(),
+          vin: trade.vin,
+          make: trade.make,
+          model: trade.model,
+          year: trade.year,
+          cash: (+tradeValue * 1.25).toFixed(2),
+        };
+        return await prisma.inventory
+          .upsert({
+            where: {
+              vin: trade.vin,
+            },
+            create: invObject,
+            update: invObject,
+          })
+          .then((inv) =>
+            prisma.dealTrade.create({
+              data: {
+                id: randomUUID(),
+                deal: newDeal.id,
+                vin: inv.vin,
+                value: (+tradeValue).toFixed(2),
+              },
+            }),
+          );
+      }),
+    );
+    finishingPromises.push(tradesPromises);
+  }
+
+  await Promise.all(finishingPromises);
+
+  const formattedInventory = formatInventory(inventory);
 
   console.log(
     {
-      createdDeal,
+      newDeal,
     },
     dealId,
   );
 
   await notifyDeal({
-    fullName: fullNameFromPerson(createdDeal.Account.person),
+    fullName: fullNameFromPerson(newDeal.Account.person),
     invString: formattedInventory,
-    dealId: createdDeal.id,
-    amount: +createdDeal.cash,
-    type:
-      createdDeal.id !== dealId
-        ? 'UPDATE'
-        : +createdDeal.term > 0
-        ? 'CREDIT'
-        : 'CASH',
+    dealId: newDeal.id,
+    amount: +newDeal.cash,
+    type: newDeal.id !== dealId ? 'UPDATE' : +newDeal.term > 0 ? 'CREDIT' : 'CASH',
   });
 
-  return createdDeal;
+  return newDeal;
 };
 
 export default createDeal;
