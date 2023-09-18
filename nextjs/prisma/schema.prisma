@@ -3,25 +3,25 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model Account {
   id                         String  @id
-  contact                    String  @unique
+  contact                    String  @unique(map: "sqlite_autoindex_account_2")
   cosigner                   String?
   date_of_birth              String?
-  license_number             String  @unique
+  license_number             String  @unique(map: "sqlite_autoindex_account_3")
   license_expiration         String?
-  date_added                 String? @default(dbgenerated("CURRENT_TIMESTAMP"))
-  date_modified              String? @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_added                 String? @default("CURRENT_TIMESTAMP")
+  date_modified              String? @default("CURRENT_TIMESTAMP")
   current_standing           String?
   notes                      String?
   person                     Person  @relation(fields: [contact], references: [id], onDelete: Cascade)
   deal_deal_accountToaccount Deal[]  @relation("deal_accountToaccount")
 
-  @@unique([contact, cosigner], map: "unique_primary_secondary")
+  @@unique([contact, cosigner], map: "sqlite_autoindex_account_4")
   @@map("account")
 }
 
@@ -33,7 +33,7 @@ model Charge {
   deal_charges    DealCharge[]    @relation("deal_charge_chargeTocharge")
   default_charges DefaultCharge[] @relation("default_charge_chargeTocharge")
 
-  @@unique([name, amount])
+  @@unique([name, amount], map: "sqlite_autoindex_charge_2")
   @@map("charge")
 }
 
@@ -44,17 +44,17 @@ model city {
   zip          String
   abbreviation String
 
-  @@unique([city, state], map: "unique_city_state")
+  @@unique([city, state], map: "sqlite_autoindex_city_2")
   @@index([state(sort: Desc)], map: "i_city_state")
 }
 
 model Creditor {
   id              String          @id
-  business_name   String          @unique
+  business_name   String          @unique(map: "sqlite_autoindex_creditor_2")
   contact         String
   filing_fees     String
-  date_added      String?         @default(dbgenerated("CURRENT_TIMESTAMP"))
-  date_modified   String?         @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_added      String?         @default("CURRENT_TIMESTAMP")
+  date_modified   String?         @default("CURRENT_TIMESTAMP")
   apr             String          @default("10")
   person          Person          @relation(fields: [contact], references: [id], onDelete: Cascade)
   deals           Deal[]          @relation("deal_creditorTocreditor")
@@ -72,7 +72,7 @@ model Deal {
   inventoryId  String         @map("inventory")
   creditor     String?
   cash         String
-  down         String?        @default(dbgenerated("0"))
+  down         String?        @default("0")
   apr          String
   finance      String?
   lien         String?
@@ -82,7 +82,7 @@ model Deal {
   tax_state    String?
   tax_county   String?
   tax_rtd      String?
-  Account     Account        @relation("deal_accountToaccount", fields: [account], references: [id], onDelete: Cascade)
+  Account      Account        @relation("deal_accountToaccount", fields: [account], references: [id], onDelete: Cascade)
   creditors    Creditor?      @relation("deal_creditorTocreditor", fields: [creditor], references: [id], onDelete: Cascade, onUpdate: SetNull)
   inventory    Inventory      @relation(fields: [inventoryId], references: [vin], onDelete: Cascade)
   dealCharges  DealCharge[]   @relation("deal_charge_dealTodeal")
@@ -90,7 +90,7 @@ model Deal {
   dealTrades   DealTrade[]    @relation("deal_trade_dealTodeal")
   payments     Payment[]      @relation("payment_dealTodeal")
 
-  @@unique([date, account, inventoryId], map: "date_account_inventory")
+  @@unique([date, account, inventoryId], map: "sqlite_autoindex_deal_2")
   @@map("deal")
 }
 
@@ -100,10 +100,9 @@ model DealCharge {
   date    String?
   note    String?
   id      String  @id
-  charges Charge? @relation("deal_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
   deals   Deal?   @relation("deal_charge_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
+  charges Charge? @relation("deal_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
 
-  @@unique([deal, charge], map: "deal_charge_deal_charge_uindex")
   @@map("deal_charge")
 }
 
@@ -111,10 +110,10 @@ model DealSalesman {
   id       String   @id
   deal     String
   salesman String
-  Deals    Deal     @relation("deal_salesman_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
   Salesman Salesman @relation("deal_salesman_salesmanTosalesman", fields: [salesman], references: [person], onDelete: Cascade)
+  Deals    Deal     @relation("deal_salesman_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
 
-  @@unique([deal, salesman])
+  @@unique([deal, salesman], map: "sqlite_autoindex_deal_salesman_2")
   @@map("deal_salesman")
 }
 
@@ -123,10 +122,10 @@ model DealTrade {
   deal                       String
   vin                        String
   value                      String
-  deal_deal_trade_dealTodeal Deal      @relation("deal_trade_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
   inventory                  Inventory @relation(fields: [vin], references: [vin], onDelete: Cascade)
+  deal_deal_trade_dealTodeal Deal      @relation("deal_trade_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
 
-  @@unique([deal, vin])
+  @@unique([deal, vin], map: "sqlite_autoindex_deal_trade_2")
   @@map("deal_trade")
 }
 
@@ -134,16 +133,16 @@ model DefaultCharge {
   id                                         String   @id
   creditor                                   String
   charge                                     String
-  charge_default_charge_chargeTocharge       Charge   @relation("default_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
   creditor_default_charge_creditorTocreditor Creditor @relation("default_charge_creditorTocreditor", fields: [creditor], references: [business_name], onDelete: Cascade)
+  charge_default_charge_chargeTocharge       Charge   @relation("default_charge_chargeTocharge", fields: [charge], references: [id], onDelete: Cascade)
 
-  @@unique([creditor, charge])
+  @@unique([creditor, charge], map: "sqlite_autoindex_default_charge_2")
   @@map("default_charge")
 }
 
 model Inventory {
   id            String      @id
-  vin           String      @unique
+  vin           String      @unique(map: "sqlite_autoindex_inventory_2")
   year          String
   make          String
   model         String?
@@ -152,8 +151,8 @@ model Inventory {
   fuel          String?
   cwt           String?
   mileage       String?
-  date_added    String?     @default(dbgenerated("CURRENT_TIMESTAMP"))
-  date_modified String?     @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date_added    String?     @default("CURRENT_TIMESTAMP")
+  date_modified String?     @default("CURRENT_TIMESTAMP")
   picture       String?
   cash          String?
   credit        String?
@@ -168,11 +167,11 @@ model Inventory {
 model Payment {
   id                      String @id
   deal                    String
-  date                    String @default(dbgenerated("CURRENT_TIMESTAMP"))
+  date                    String @default("CURRENT_TIMESTAMP")
   amount                  String
   deal_payment_dealTodeal Deal   @relation("payment_dealTodeal", fields: [deal], references: [id], onDelete: Cascade)
 
-  @@unique([deal, date, amount])
+  @@unique([deal, date, amount], map: "sqlite_autoindex_payment_2")
   @@map("payment")
 }
 
@@ -188,7 +187,7 @@ model Person {
   address_3       String?
   city            String     @default("Fort Morgan")
   state_province  String     @default("CO")
-  zip_postal      String     @default(dbgenerated("80701"))
+  zip_postal      String     @default("80701")
   zip_4           String?
   country         String     @default("US")
   phone_primary   String
@@ -200,34 +199,15 @@ model Person {
   creditors       Creditor[]
   salesman        Salesman?  @relation("salesman_personToperson")
 
-  @@unique([last_name, first_name, address_1], map: "last_first_address")
+  @@unique([last_name, first_name, address_1], map: "sqlite_autoindex_person_2")
   @@map("person")
 }
 
 model Salesman {
   id             String         @id
-  person         String         @unique
+  person         String         @unique(map: "sqlite_autoindex_salesman_2")
   dealSalesmen   DealSalesman[] @relation("deal_salesman_salesmanTosalesman")
   salesmanPerson Person         @relation("salesman_personToperson", fields: [person], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("salesman")
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model sqlite_master {
-  type     String?
-  name     String?
-  tbl_name String?
-  rootpage Int?
-  sql      String?
-
-  @@ignore
-}
-
-/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
-model sqlite_sequence {
-  name BigInt?
-  seq  BigInt?
-
-  @@ignore
 }
