@@ -36,7 +36,6 @@ export const upload = async ({
         console.log('Bucket created successfully in', region);
       });
     }
-    console.log('Bucket exists.');
   });
 
   try {
