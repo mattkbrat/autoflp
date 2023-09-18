@@ -1,5 +1,7 @@
 import send from './send';
 import handleUrl from '@/utils/handleUrl';
+import financeFormat from '@/utils/finance/format';
+import formatInventory from '@/utils/format/formatInventory';
 
 export default async function notifyPayment({
   amount,
@@ -7,21 +9,33 @@ export default async function notifyPayment({
   // remainingBalance,
   pid,
   type = 'POST',
+  inventory: { make, model, year },
 }: {
   amount: number;
   name: string;
   // remainingBalance: number;
   pid: string;
   type: 'DELETE' | 'POST';
+  inventory: {
+    make: string;
+    model?: string | null;
+    year: string;
+  };
 }) {
   const finance = financeFormat({ num: amount });
 
+  const inventoryString = formatInventory({
+    make,
+    model,
+    year,
+  });
+
   const message =
     type === 'POST'
-      ? `${name} paid ${finance}`
-      : `Deleted payment of ${finance} from ${name}`;
+      ? `${name} paid ${finance} towards the ${inventoryString}`
+      : `Deleted payment of ${finance} from ${name} against the ${inventoryString}`;
 
-  const success = await send({
+  return send({
     title: `Payment ${type === 'POST' ? 'Received' : 'Deleted'}`,
     priority: 0,
     sound: 'classical',
@@ -29,6 +43,4 @@ export default async function notifyPayment({
     url: handleUrl(`person?pid='+${pid}`),
     url_title: 'View Person',
   });
-
-  return success;
 }

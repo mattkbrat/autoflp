@@ -7,8 +7,10 @@ import ManageAccountsTable from '@/app/accounts/ManageAccountsTable';
 import PersonForm from '@/components/forms/PersonForm';
 import { AccountsWithRelevant } from '@/types/prisma/accounts';
 
-async function AccountPage({ data }: { data: AccountsWithRelevant[number][] }) {
+async function AccountPage(props: { data?: AccountsWithRelevant[number][] }) {
   const router = useRouter();
+
+  const data = props.data || {};
 
   return (
     <Stack>
