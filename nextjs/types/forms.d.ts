@@ -1,5 +1,5 @@
 export type Form =
-  | 'Application for Title andor Registration 031522' // Finished
+  | 'DR2395_2022' // Finished
   | 'Application' // finished
   | 'billing'
   | 'Buyers Guide' // finished

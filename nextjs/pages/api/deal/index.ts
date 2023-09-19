@@ -83,7 +83,7 @@ async function dealFetcher(req: NextApiRequest, res: NextApiResponse) {
 
         const forms = await generateMultipleDealForms({
           forms: [
-            'Application for Title andor Registration 031522',
+            'DR2395_2022',
             'Buyers Guide',
             'Buyers Order',
             'Cover',

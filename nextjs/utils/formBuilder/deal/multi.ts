@@ -38,7 +38,7 @@ async function generateMultipleDealForms({
       case 'Buyers Guide':
         result = await generateBuyersGuide({ fullDeal, output: formName });
         break;
-      case 'Application for Title andor Registration 031522':
+      case 'DR2395_2022':
         result = await generateApplicationForTitleForm({
           fullDeal,
           output: formName,
