@@ -106,6 +106,7 @@ export const getDealsWithPayments = async ({
       inventory: inventorySelect,
       Account: {
         select: {
+          id: true,
           person: true,
         },
       },

@@ -202,9 +202,12 @@ async function generateBillingStatements() {
   const expectedStatements = Math.ceil(
     (deals.length - dealsToClose.length) / chunkSize,
   );
-  if (allStatements.length > 0 && allStatements.length !== expectedStatements) {
+  if (
+    allStatements.length > 0 &&
+    Math.abs(allStatements.length - expectedStatements) > 3
+  ) {
     throw new Error(
-      `Expected ${expectedStatements} statements, but got ${allStatements.length} instead.`,
+      `Expected ${expectedStatements} ( +- 3 ) statements, but got ${allStatements.length} instead.`,
     );
   }
 

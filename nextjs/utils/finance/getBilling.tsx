@@ -5,6 +5,7 @@ import { getDealsWithPayments } from '@/utils/prisma/payment/getDealPayments';
 
 export type DelinquentAccount = {
   account?: {
+    id?: string;
     person: {
       id: string;
       first_name: string;
@@ -27,6 +28,7 @@ function formatDelinquent(
 ): DelinquentAccount {
   return {
     account: {
+      id: deal.Account.id,
       person: {
         id: deal.Account.person.id,
         first_name: deal.Account.person.first_name,

@@ -28,7 +28,7 @@ export default async function notifyAccount({
     priority: 0,
     sound: 'classical',
     message,
-    url: handleUrl(`person?aid='+${aid}`),
+    url: handleUrl(`accounts/${aid}`),
     url_title: 'View Person',
   });
 
