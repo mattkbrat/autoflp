@@ -2,6 +2,7 @@ import { DealsPayments } from '@/types/prisma/deals';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import { delinquent } from '@/utils/finance/index';
 import { getDealsWithPayments } from '@/utils/prisma/payment/getDealPayments';
+import totalPaidAtMonth from '@/utils/finance/totalPaidAtMonth';
 
 export type DelinquentAccount = {
   account?: {
@@ -51,6 +52,7 @@ export async function getBilling(): Promise<BillingHandlerType> {
   const billableAccounts = await getDealsWithPayments({ state: 1 });
 
   const accountsInDefault = [];
+  const today = new Date();
 
   let totalDelinquent = 0;
   let totalAmountExpected = 0;
@@ -103,7 +105,7 @@ export async function getBilling(): Promise<BillingHandlerType> {
     accountsInDefault: sortedDefaults,
     totalAmountExpected,
     expectedThisMonth,
-    paidThisMonth,
+    paidThisMonth: await totalPaidAtMonth(today.getMonth(), today.getFullYear()),
     totalOpenAccounts: billableAccounts.length,
   };
 }

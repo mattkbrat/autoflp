@@ -73,10 +73,19 @@ const returnObj = {
 function delinquent(deal: DealPayments, month: number | undefined = undefined) {
   if (typeof month === 'undefined') {
     month = Math.min(
-      monthsBetweenDates(new Date(deal.date), new Date()),
+      monthsBetweenDates(new Date(deal.date), new Date()) - 1,
       Number(deal.term),
     );
+    // month = new Date().getMonth();
   }
+
+  // console.log(
+  //   'Getting delinquent balance for',
+  //   deal.Account.person.last_name,
+  //   deal.Account.person.first_name,
+  //   'at month',
+  //   month,
+  // );
 
   const checkDate = datePlusMonths(deal.date, month + 1);
 
@@ -98,6 +107,21 @@ function delinquent(deal: DealPayments, month: number | undefined = undefined) {
   returnObj.totalExpectedAtDate = expectedPaid;
   returnObj.totalPaidAmount = totalPaid;
   returnObj.paidThisMonth = paidThisMonth({ payments, atMonth: month });
+
+  // console.log({
+  //   fullname: `${deal.Account.person.first_name} ${deal.Account.person.last_name}`,
+  //   totalDelinquent: returnObj.totalDelinquent,
+  //   totalExpectedAtDate: returnObj.totalExpectedAtDate,
+  //   totalPaidAmount: returnObj.totalPaidAmount,
+  //   paidThisMonth: returnObj.paidThisMonth,
+  //   term,
+  //   dealDate: deal.date,
+  //   checkDate,
+  // });
+
+  if (+returnObj.paidThisMonth > 0) {
+    console.log(returnObj.paidThisMonth);
+  }
 
   return returnObj;
 }
