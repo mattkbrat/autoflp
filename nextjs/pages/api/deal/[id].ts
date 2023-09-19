@@ -2,6 +2,8 @@ import { HTTP_METHOD } from 'next/dist/server/web/http';
 import { NextApiRequest, NextApiResponse } from 'next';
 import getAccountWithRelevantWithPayments from '@/utils/prisma/account/getAccountWithRelevantWithPayments';
 import { withSessionRoute } from '@/utils/auth/withSession';
+import { closeDeals } from '@/utils/prisma/deal';
+import updateDeal from '@/utils/prisma/deal/updateDeal';
 
 const individualDealHandler = async (req: NextApiRequest, res: NextApiResponse) => {
   const user = req.session.user;
@@ -28,9 +30,10 @@ const individualDealHandler = async (req: NextApiRequest, res: NextApiResponse) 
     case 'POST':
       break;
     case 'PUT':
-      break;
+      return res.send(await updateDeal({ id, data: req.body }));
+
     case 'DELETE':
-      break;
+      return res.send(await closeDeals({ deals: [id] }));
     case 'PATCH':
       break;
   }
