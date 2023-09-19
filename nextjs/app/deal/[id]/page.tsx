@@ -5,8 +5,6 @@ const DealPage = ({
     id: string | string[];
   };
 }) => {
-  console.log({ params });
-
   return <p>Deal</p>;
 };
 

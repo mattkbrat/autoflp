@@ -24,11 +24,7 @@ const InventoryPage = ({ inventory }: { inventory: InventoryWithDeals }) => {
       </Breadcrumb>
       <Heading>Inventory</Heading>
       <InventoryCard inventory={inventory} />
-      <InventoryForm
-        withSearch={false}
-        id={inventory.id}
-        selectedId={inventory.id}
-      />
+      <InventoryForm withSearch={true} id={inventory.id} selectedId={inventory.id} />
     </Stack>
   );
 };

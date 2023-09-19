@@ -88,10 +88,6 @@ const InventoryForm = (props: {
     setMessage(null);
   }, [message, toast]);
 
-  const [singleInventory, setSingleInventory] = useState<InventoryWithDeals | null>(
-    null,
-  );
-
   const [loading, setLoading] = useState<boolean>(false);
 
   const {
@@ -118,6 +114,7 @@ const InventoryForm = (props: {
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
+        console.info('Got inventory', data);
         setFetchedInventory(data);
       });
   }, [inventoryLookupType]);
@@ -145,7 +142,8 @@ const InventoryForm = (props: {
         .then((res) => res.json())
         .then((data) => {
           setChanges({});
-          data?.id === inventoryId && setSingleInventory(data);
+          console.info('Fetched inventory', data, inventoryId);
+          data?.id === inventoryId && setChanges(data);
           if (!setInventoryPrices) {
             return;
           }
@@ -163,8 +161,8 @@ const InventoryForm = (props: {
   }, [inventoryId, setInventoryPrices]);
 
   useEffect(() => {
-    if (setIid && typeof singleInventory?.vin === 'string') {
-      setIid(singleInventory?.vin);
+    if (setIid && typeof changes?.vin === 'string') {
+      setIid(changes?.vin);
     }
 
     if (typeof changes == 'undefined') {
@@ -181,7 +179,7 @@ const InventoryForm = (props: {
         });
       }
     });
-  }, [changes, setIid, setInventoryPrices, singleInventory]);
+  }, [changes, setIid, setInventoryPrices]);
 
   const filteredInventory = useMemo(() => {
     if (filter === '') {
@@ -238,17 +236,14 @@ const InventoryForm = (props: {
   async function handleSubmit(e: FormEvent<HTMLFormElement | HTMLDivElement>) {
     e?.preventDefault();
     const updates = {
-      ...singleInventory,
       ...changes,
       id: changes.id,
     };
 
-    const url = `/api/inventory${
-      singleInventory?.id ? `/${singleInventory?.id}` : ''
-    }`;
+    const url = `/api/inventory${changes?.id ? `/${changes?.id}` : ''}`;
 
     fetch(url, {
-      method: singleInventory ? 'PUT' : 'POST',
+      method: changes.id ? 'PUT' : 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     }).then(async (res) => {
@@ -259,7 +254,6 @@ const InventoryForm = (props: {
 
   function handleReset() {
     setChanges({});
-    setSingleInventory(null);
     router.refresh();
   }
 
@@ -314,8 +308,7 @@ const InventoryForm = (props: {
   }
 
   const mileageExempt =
-    +(changes?.year ?? singleInventory?.year ?? 0) +
-      (10 + (new Date().getFullYear() - 2021)) <
+    +(changes?.year ?? 0) + (10 + (new Date().getFullYear() - 2021)) <
     new Date().getFullYear();
 
   if (loading) {
@@ -366,11 +359,7 @@ const InventoryForm = (props: {
             <Stack spacing={4} direction="column">
               {debug && (
                 <pre>
-                  {JSON.stringify(
-                    { inventoryId, mileageExempt, changes, singleInventory },
-                    null,
-                    2,
-                  )}
+                  {JSON.stringify({ inventoryId, mileageExempt, changes }, null, 2)}
                 </pre>
               )}
               {withSearch && (
@@ -426,8 +415,7 @@ const InventoryForm = (props: {
                             : 'active',
                         );
 
-                        setMessage(null);
-                        setSingleInventory(null);
+                        setChanges({});
                       }}
                     >
                       {inventoryLookupType === 'active'
@@ -528,7 +516,7 @@ const InventoryForm = (props: {
                   tooltip={mileageExempt ? 'Mileage exempt' : undefined}
                   value={mileageExempt ? 'EXEMPT' : changes?.mileage || ''}
                   inputElement={
-                    (changes?.mileage || singleInventory?.mileage) && !mileageExempt
+                    changes?.mileage && !mileageExempt
                       ? {
                           side: 'right',
                           element: <InputRightElement>mi</InputRightElement>,

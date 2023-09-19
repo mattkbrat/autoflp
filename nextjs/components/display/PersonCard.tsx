@@ -59,15 +59,16 @@ const PersonCard = ({
   return (
     <TableContainer>
       <Table>
-        <Tbody></Tbody>
-        <Tr>
-          <Th>Name</Th>
-          <Td>{name}</Td>
-        </Tr>
-        <Tr>
-          <Th>Address</Th>
-          <Td>{address}</Td>
-        </Tr>
+        <Tbody>
+          <Tr>
+            <Th>Name</Th>
+            <Td>{name}</Td>
+          </Tr>
+          <Tr>
+            <Th>Address</Th>
+            <Td>{address}</Td>
+          </Tr>
+        </Tbody>
       </Table>
     </TableContainer>
   );

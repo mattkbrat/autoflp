@@ -3,6 +3,7 @@ import { withSessionRoute } from '@/utils/auth/withSession';
 import { getAccount, getAccounts } from '@/utils/prisma/account';
 import { HTTP_METHOD } from 'next/dist/server/web/http';
 import updateAccount from '@/utils/prisma/account/updateAccount';
+import updateDeal from '@/utils/prisma/deal/updateDeal';
 
 const AccountHandler = async (req: NextApiRequest, res: NextApiResponse) => {
   const { id } = req.query;
@@ -29,7 +30,6 @@ const AccountHandler = async (req: NextApiRequest, res: NextApiResponse) => {
         break;
       case 'PUT':
         return res.send(await updateAccount({ id, account: req.body }));
-        break;
       case 'DELETE':
         break;
       case 'PATCH':

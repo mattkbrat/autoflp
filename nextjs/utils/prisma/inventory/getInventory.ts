@@ -17,16 +17,6 @@ const getInventory = async ({
   state?: number | number[];
   deal?: string | string[];
 }) => {
-  console.log('Fetching inventory with the following params:', {
-    id,
-    make,
-    model,
-    year,
-    vin,
-    state,
-    deal,
-  });
-
   return prisma.inventory.findMany({
     where: {
       id: Array.isArray(id) ? { in: id } : id,

@@ -18,7 +18,6 @@ const GlobalSearch = ({ searchOptions }: { searchOptions: SearchOption[] }) => {
   const pathname = usePathname();
 
   const setValue = (value: string | number) => {
-    console.log('GlobalSearch.tsx: setValue:', value);
     setSelected(searchOptions.find((s) => s.display === value));
   };
 
