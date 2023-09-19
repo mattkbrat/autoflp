@@ -10,7 +10,7 @@ const InventorySelector = ({
   selected,
   setSelected,
   setPrices,
-  setSelectedType = 'vin'
+  setSelectedType = 'vin',
 }: {
   inventory?: Inventory[];
   selected: string | number;
@@ -40,18 +40,24 @@ const InventorySelector = ({
 
   useEffect(() => {
     if (!selected) {
+      console.warn('No selected inventory');
       return;
     }
-    const matching = inventory?.find((inventory) => inventory.id === selected);
+    const matching = inventory?.find(
+      (inventory) => inventory.id === selected || inventory.vin === selected,
+    );
     if (!matching) {
+      console.warn('No matching inventory found for id ' + selected);
       return;
     }
+    console.log('matching', matching);
     setPrices({
+      selling: +(matching.cash ?? 0),
       down: +(matching.down ?? 0),
       cash: +(matching.cash ?? 0),
       credit: +(matching.credit ?? 0),
     });
-  }, [inventory]);
+  }, [inventory, selected]);
 
   // const selector = useMemo(() => {
   //     return new Searcher(inventory, {
@@ -89,7 +95,9 @@ const InventorySelector = ({
       value={selected}
       setValue={(e) => {
         setSelected(
-          inventoryFormatted.find((inventory) => inventory.formatted === e)?.[setSelectedType] || 0,
+          inventoryFormatted.find((inventory) => inventory.formatted === e)?.[
+            setSelectedType
+          ] || 0,
         );
       }}
       placeholder={'Select inventory'}

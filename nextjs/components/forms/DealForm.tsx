@@ -146,7 +146,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
   >([]);
 
   const [inventoryPrices, setInventoryPrices] = useState<{
-    selling: number;
+    selling?: number;
     credit?: number;
     cash?: number;
     down: number;
@@ -873,14 +873,27 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
               <Divider />
 
               <Flex alignItems={'center'}>
-                <Stack>
+                <Stack
+                  direction={{
+                    base: 'column',
+                    md: 'row-reverse',
+                  }}
+                  alignItems={'center'}
+                  spacing={{ base: 0, md: 4 }}
+                  justifyItems={'center'}
+                >
                   <InventorySelector
-                    setPrices={setInventoryPrices}
+                    setPrices={(e) => {
+                      setInventoryPrices(e);
+                      console.info('Got prices', e);
+                    }}
                     setSelected={setIid}
                     selected={iid || ''}
                     state={inventoryState}
                   />
                   <Button
+                    colorScheme={'blue'}
+                    variant={'outline'}
                     onClick={() => setInventoryState(inventoryState === 0 ? 1 : 0)}
                   >
                     {inventoryState === 0 ? 'Current Inventory' : 'All Inventory'}
@@ -906,7 +919,8 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
                     formLabel="Selling Value"
                     isInvalid={
                       +inventoryPrices.down >
-                      +inventoryPrices.selling + +changes.saleTax
+                      +(inventoryPrices?.selling || 0) +
+                        +(calculatedFinance?.totalTaxDollar || 0)
                     }
                     name={+(inventoryPrices?.selling ?? 0)}
                     onChange={(_valueAsString, valueAsNumber) =>
