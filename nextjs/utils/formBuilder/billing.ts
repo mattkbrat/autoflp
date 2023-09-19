@@ -44,7 +44,7 @@ async function generateBillingStatements() {
   const dealsToClose: string[] = [];
 
   const [deals] = await Promise.all([
-    getDealsWithPayments({ state: 1, limit: 3 }),
+    getDealsWithPayments({ state: 1 }),
     deleteFromBucket('billing'),
   ]);
 
