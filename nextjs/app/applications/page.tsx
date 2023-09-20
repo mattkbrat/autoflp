@@ -1,16 +1,14 @@
 import spreadsheet from '@/lib/google/spreadsheet';
-import Image from 'next/image';
 import { camelCase } from 'lodash';
 import { type CreditApplication } from '@/types/CreditApplication';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import Link from 'next/link';
-
-type Range = string[][];
 import dynamic from 'next/dynamic';
 import { getRequestCookie } from '@/utils/auth/getRequestCookie';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 // import CreditAppsPage from '@/app/applications/ApplicationPage';
+type Range = string[][];
 
 const CreditAppPage = dynamic(() => import('@/app/applications/ApplicationPage'), {
   ssr: false,
@@ -24,7 +22,7 @@ const ApplicationsPage = async () => {
     redirect('/auth/login');
   }
 
-  const sheet = await spreadsheet();
+  const sheet = await spreadsheet(2);
 
   if (!sheet) {
     return (
@@ -52,9 +50,11 @@ const ApplicationsPage = async () => {
   // My document contains duplicate headers, so I'm going to use the raw data
   // Updating the cells would interrupt the form submissions and create new columns,
   // which would interfere with other tools I've built already from the data.
-  const range: Range = await sheet.getCellsInRange('A1:BQ500');
+  const range: Range = await sheet.getCellsInRange('A:BQ');
 
   const [headers, ...rows] = range;
+
+  console.log('headers', headers, rows[rows.length - 1]);
 
   let newApplication = {} as CreditApplication;
 
@@ -62,7 +62,7 @@ const ApplicationsPage = async () => {
     newApplication = {} as CreditApplication;
     row.forEach((cell, n) => {
       // The key is the header, but camelCased
-      let key = camelCase(headers[n]);
+      let key = camelCase(headers[n]) as keyof CreditApplication;
 
       if (newApplication[key]) {
         const keyCount = Object.keys(newApplication).filter((k) =>
@@ -74,15 +74,15 @@ const ApplicationsPage = async () => {
       newApplication[key] = cell;
     });
 
-    newApplication.paystub = replaceGoogleDriveUrlWithImageLink(
-      newApplication.paystub,
-    );
-    newApplication.license2 = replaceGoogleDriveUrlWithImageLink(
-      newApplication.license2,
-    );
-    newApplication.proofOfResidency = replaceGoogleDriveUrlWithImageLink(
-      newApplication.proofOfResidency,
-    );
+    // newApplication.paystub = replaceGoogleDriveUrlWithImageLink(
+    //   newApplication.paystub,
+    // );
+    // newApplication.license2 = replaceGoogleDriveUrlWithImageLink(
+    //   newApplication.license2,
+    // );
+    // newApplication.proofOfResidency = replaceGoogleDriveUrlWithImageLink(
+    //   newApplication.proofOfResidency,
+    // );
 
     const { firstName, lastName, timestamp } = newApplication;
 

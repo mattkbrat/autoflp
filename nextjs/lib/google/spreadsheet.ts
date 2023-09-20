@@ -27,7 +27,17 @@ const spreadsheet = async (sheetIndex = 0) => {
 
       await doc.loadInfo(); // loads document properties and worksheets
 
-      return doc.sheetsByIndex[sheetIndex];
+      console.info('New Google Sheets connection');
+
+      const sheet = doc.sheetsByIndex[sheetIndex];
+
+      console.log('Loaded doc: ' + doc.title, {
+        sheet: sheet.title,
+        id: sheet.sheetId,
+        rows: doc.sheetsByIndex[sheetIndex].rowCount,
+      });
+
+      return sheet;
     } catch (error) {
       console.error(error);
       if (_attempt < 3) {
@@ -40,8 +50,6 @@ const spreadsheet = async (sheetIndex = 0) => {
       }
     }
   };
-
-  console.info('New Google Sheets connection');
 
   return tryConnection();
 };
