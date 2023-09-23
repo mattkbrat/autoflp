@@ -90,7 +90,7 @@ function DropdownCombobox({
   const listBg = useColorModeValue('white', 'gray.800');
 
   return (
-    <Stack maxW={'full'} spacing={2}>
+    <Stack maxW={'full'} spacing={2} border={'1px solid'} p={2}>
       <Text
         as={'label'}
         fontSize={'md'}
@@ -100,9 +100,11 @@ function DropdownCombobox({
       >
         {placeholder}
       </Text>
-      <Box display={'flex'} position={'relative'} w={'max-content'}>
-        <InputGroup position={'relative'}>
-          <Input p={2} {...getInputProps()} data-testid="combobox-input" />
+      <Box display={'flex'} position={'relative'} w={'full'}>
+        <InputGroup position={'relative'} w='full'>
+          <Input p={2} 
+          placeholder={'SEARCH'}
+          {...getInputProps()} w='full' data-testid="combobox-input" />
           <InputRightElement w={'max-content'}>
             <ButtonGroup>
               <Button
