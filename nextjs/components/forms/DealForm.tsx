@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaFileDownload } from 'react-icons/fa';
 import { print } from '@/utils/print';
 
@@ -39,6 +39,7 @@ import {
   Tooltip,
   Tr,
   useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
 import isDev from '@/lib/isDev';
 import AmortizationSchedule from '@/components/AmortizationSchedule';
@@ -66,9 +67,29 @@ import PersonCard from '@/components/display/PersonCard';
 import formatInventory from '@/utils/format/formatInventory';
 import { TextInput } from '@/components/Inputs/TextInput';
 import { BusinessData } from '@/types/BusinessData';
+import StackWrap from '../StackWrap';
 
 // const debug = isDev;
 const debug = false && isDev; // Never have debug in production
+
+const defaultSaleType: 'cash' | 'credit' = 'credit';
+
+const defaultChanges = {
+  tax_city: '0',
+  tax_rtd: '0',
+  tax_county: '0',
+  tax_state: '2.9',
+  filing_fees: '0',
+  down: '0',
+  downOwed: 0,
+  totalCost: 0,
+  sale_type: defaultSaleType,
+  term: '12',
+  date: new Date().toISOString().split('T')[0],
+  salesman: '',
+  trade_value: 0,
+  cosigner: '',
+};
 
 /**
  * This page will be rendered at /deal
@@ -90,23 +111,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       totalCost: number;
       cosigner: string | null;
     }
-  >({
-    id: props.id,
-    tax_city: '0',
-    tax_rtd: '0',
-    tax_county: '0',
-    tax_state: '2.9',
-    filing_fees: '0',
-    down: '0',
-    downOwed: 0,
-    totalCost: 0,
-    sale_type: 'credit',
-    term: '12',
-    date: new Date().toISOString().split('T')[0],
-    salesman: '',
-    trade_value: 0,
-    cosigner: '',
-  });
+  >({ ...defaultChanges, id: props.id });
 
   const isCredit = useMemo(() => {
     return changes.sale_type === 'credit';
@@ -124,6 +129,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
     useState<FinanceCalcResult | null>(null);
 
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const [message, setMessage] = useState<string | null>(null);
 
   // useEffect(() => {
   //   if (showAlert) {
@@ -142,8 +148,66 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       year?: string;
       vin?: string;
       value?: number;
+      isFetching?: boolean;
+      isInvalid?: boolean;
     }[]
   >([]);
+
+  const fetchTrade = useCallback((index: number) => {
+    const thisTrade = trades[index];
+    if (thisTrade.isFetching) return
+    setTrades([
+      ...trades.slice(0, index),
+      {
+        ...thisTrade,
+        isFetching: true,
+      },
+      ...trades.slice(index + 1),
+    ]);
+    fetch(`/api/inventory/${trades[index].vin}/vin`).then(
+      async (res) => {
+        const data = await res.json();
+        if (data.error) {
+          setMessage(data.error);
+        } else {
+          // Update trades object
+          const newTrades = [...trades];
+          newTrades[index].make = data.vin.make;
+          newTrades[index].model = data.vin.model;
+          newTrades[index].year = data.vin.year;
+          newTrades[index].isFetching = false;
+          setTrades(newTrades);
+        }
+      },
+    );
+  }, [trades]);
+
+  useEffect(() => {
+    // for (const trade of trades) {
+    //   if (!trade.make && trade.vin && trade.vin.length === 17) {
+    //     fetchTrade(trades.indexOf(trade));
+    //   }
+    // }
+
+    const newTrades = trades;
+
+    newTrades.forEach((trade, i) => {
+      if (!trade.vin || trade.vin.length !== 17) {
+        trade.isInvalid = true
+        return
+      } else {
+        const vinCount = newTrades.filter(v => v.vin === trade.vin).length
+        trade.isInvalid = vinCount > 1
+      }
+      
+      if (!trade.isInvalid && !trade.make){
+        fetchTrade(i)
+        return
+      }
+    });
+
+    setTrades(newTrades)
+  }, [trades]);
 
   const [inventoryPrices, setInventoryPrices] = useState<{
     selling?: number;
@@ -155,7 +219,18 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
     down: 0,
   });
 
-  const [message, setMessage] = useState<string | null>(null);
+
+  const toast = useToast();
+
+  useEffect(() => {
+    message &&
+      toast({
+        title: message,
+        status: message.toLowerCase().includes('error') ? 'error' : 'info',
+        duration: 5000,
+        isClosable: true,
+      });
+  }, [message, toast]);
 
   // const MemoizedSchedule = useMemo(() => {
   //   if (!calculatedFinance || changes.sale_type !== "credit") {
@@ -264,6 +339,10 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       });
     }
 
+    if (!inventoryPrices.selling || Number.isNaN(+inventoryPrices.selling)) {
+      return;
+    }
+
     const sellingValue = +inventoryPrices.selling;
     const tradeValue = +changes.trade_value;
     let totalTaxPercent =
@@ -272,18 +351,22 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       // +changes.tax_rtd +
       // +changes.tax_state) /
       // 100;
-      +(changes.tax_state || 0) +
-      +(changes.tax_city || 0) +
-      +(changes.tax_county || 0) +
-      +(changes.tax_rtd || 0) / 100;
+      (Number(changes.tax_state || 0) +
+      Number(changes.tax_city || 0) +
+      Number(changes.tax_county || 0) +
+      Number(changes.tax_rtd || 0)) / 100;
     totalTaxPercent = Math.round(totalTaxPercent * 1000) / 1000;
     const totalValue = (sellingValue - tradeValue) * (1 + totalTaxPercent);
 
-    if (changes.sale_type === 'cash' && inventoryPrices.down !== totalValue) {
+    if (changes.sale_type === 'cash' && inventoryPrices.down.toFixed(2) !== totalValue.toFixed(2)) {
       console.log('changes.sale_type', changes.sale_type);
       setChanges({
         ...changes,
         down: totalValue.toFixed(2),
+      });
+      setInventoryPrices({
+        ...inventoryPrices,
+        down: totalValue,
       });
     }
 
@@ -549,6 +632,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
               });
 
               setForms(filteredForms);
+              downloadZip(filteredForms);
 
               ({ filteredForms });
             }
@@ -573,6 +657,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       },
     );
 
+
     onClose();
   }
 
@@ -590,7 +675,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
   };
 
   return (
-    <Stack>
+    <StackWrap>
       {isOpen && (
         <AlertDialog
           size={'6xl'}
@@ -785,534 +870,503 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
         </AlertDialog>
       )}
 
-      <FormWrap
-        setChanges={setChanges}
-        changes={changes}
-        formType="new"
-        message={message || undefined}
-        title={`${changes.sale_type === 'credit' ? 'Credit' : 'Cash'} Deal`}
-        onSubmit={onSubmit}
-      >
-        <>
-          <div className={globals.no_print}>
-            <Stack spacing={{ base: 0, md: 4 }}>
-              {debug && (
-                <pre>
-                  {JSON.stringify(
-                    {
-                      changes,
-                      inventoryPrices,
-                      trades,
-                      cid,
-                      sid,
-                    },
-                    null,
-                    2,
-                  )}
-                </pre>
-              )}
+      <Heading>{changes.sale_type === 'credit' ? 'Credit' : 'Cash'} Deal</Heading>
+      <Stack as={'form'} onSubmit={onSubmit}>
+        <Box className={globals.no_print}>
+          <Stack spacing={{ base: 0, md: 4 }}>
+            {debug && (
+              <pre>
+                {JSON.stringify(
+                  {
+                    changes,
+                    inventoryPrices,
+                    trades,
+                    cid,
+                    sid,
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            )}
 
+            <Stack
+              direction={{ base: 'column', md: 'row' }}
+              spacing={{ base: 0, md: 4 }}
+            >
+              <Tooltip
+                label={`Toggle ${
+                  changes.sale_type === 'credit' ? 'cash' : 'credit'
+                } sale`}
+              >
+                <Button
+                  px={6}
+                  onClick={() => {
+                    setChanges({
+                      ...changes,
+                      term: (changes.sale_type === 'credit' ? 0 : 12).toFixed(0),
+                      sale_type: changes.sale_type === 'credit' ? 'cash' : 'credit',
+                      creditor: '',
+                      apr: '0',
+                      filing_fees: '0.00',
+                    });
+
+                    setCid('');
+                  }}
+                >
+                  {changes.sale_type === 'credit' ? 'Credit' : 'Cash'}
+                </Button>
+              </Tooltip>
+
+              <PersonSelector
+                setPid={setPid}
+                setAid={setAid}
+                filter="account"
+                pid={pid}
+              />
+            </Stack>
+
+            {aid && (
+              <Stack
+                direction={{
+                  base: 'column',
+                  md: 'row',
+                }}
+                w={'full'}
+                justifyContent={'center'}
+              >
+                {aid && <AccountCard id={aid} />}
+                {pid && <PersonCard id={pid} />}
+              </Stack>
+            )}
+
+            <TextInput
+              name="cosigner"
+              label="Cosigner"
+              changes={changes}
+              setChanges={setChanges}
+            />
+
+            <Divider />
+
+            <Flex alignItems={'center'}>
+              <Stack
+                direction={{
+                  base: 'column',
+                  md: 'row-reverse',
+                }}
+                alignItems={'center'}
+                spacing={{ base: 0, md: 4 }}
+                justifyItems={'center'}
+              >
+                <InventorySelector
+                  setPrices={(e) => {
+                    setInventoryPrices(e);
+                    console.info('Got prices', e);
+                  }}
+                  setSelected={setIid}
+                  selected={iid || ''}
+                  state={inventoryState}
+                />
+                <Button
+                  colorScheme={'blue'}
+                  variant={'outline'}
+                  onClick={() => setInventoryState(inventoryState === 0 ? 1 : 0)}
+                >
+                  {inventoryState === 0 ? 'Current Inventory' : 'All Inventory'}
+                </Button>
+              </Stack>
+              <InventoryCard
+                simple={true}
+                withAccounts={false}
+                inventoryID={iid as string}
+              />
+            </Flex>
+
+            <Divider />
+
+            <Stack spacing={{ base: 4, md: 6 }}>
+              <Stack
+                direction={{ base: 'column', md: 'row' }}
+                spacing={{ base: 0, md: 4 }}
+                alignItems="center"
+              >
+                {/* TODO: Selling value not updating between credit/cash deals */}
+                <CurrencyInput
+                  formLabel="Selling Value"
+                  name={+(inventoryPrices?.selling ?? 0)}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setInventoryPrices({
+                      ...inventoryPrices,
+                      selling: valueAsNumber,
+                    })
+                  }
+                />
+                <CurrencyInput
+                  isDisabled={
+                    changes.sale_type === 'cash' ||
+                    !inventoryPrices.selling ||
+                    +inventoryPrices.selling === 0
+                  }
+                  formLabel="Down Payment"
+                  max={+(inventoryPrices.selling || 0) + (+changes.saleTax || 0)}
+                  name={+(inventoryPrices.down ?? 0)}
+                  tooltip={{
+                    label: 'This is the total amount due for this cash deal.',
+                    position: 'top',
+                    disabled: changes.sale_type === 'credit',
+                  }}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setInventoryPrices({ ...inventoryPrices, down: valueAsNumber })
+                  }
+                />
+                <CurrencyInput
+                  formLabel="Owed On Down"
+                  max={+inventoryPrices.down}
+                  name={+changes.downOwed ?? 0}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setChanges({ ...changes, downOwed: valueAsNumber })
+                  }
+                />
+                {changes.sale_type === 'credit' && (
+                  <FormControl
+                    isRequired
+                    w={{ base: '30%', md: '100%', sm: '100%', xs: '100%' }}
+                  >
+                    <FormLabel>Term</FormLabel>
+                    <InputGroup>
+                      <NumberInput
+                        w={'full'}
+                        defaultValue={0}
+                        value={+changes.term}
+                        min={0}
+                        max={changes.sale_type === 'credit' ? 84 : 0}
+                        keepWithinRange
+                        onChange={(_valueAsString, valueAsNumber) => {
+                          if (valueAsNumber === 0) {
+                            setChanges({
+                              ...changes,
+                              sale_type: 'cash',
+                              term: 0,
+                            });
+                          } else {
+                            setChanges({ ...changes, term: valueAsNumber });
+                          }
+                        }}
+                      >
+                        <NumberInputField />
+                        <NumberInputStepper>
+                          <NumberIncrementStepper />
+                          <NumberDecrementStepper />
+                        </NumberInputStepper>
+                      </NumberInput>
+                      <InputRightAddon
+                        bg={'none'}
+                        border={'none'}
+                        cursor={'default'}
+                        userSelect={'none'}
+                      >
+                        Months
+                      </InputRightAddon>
+                    </InputGroup>
+                  </FormControl>
+                )}
+              </Stack>
               <Stack
                 direction={{ base: 'column', md: 'row' }}
                 spacing={{ base: 0, md: 4 }}
               >
-                <Tooltip
-                  label={`Toggle ${
-                    changes.sale_type === 'credit' ? 'cash' : 'credit'
-                  } sale`}
-                >
-                  <Button
-                    px={6}
-                    onClick={() => {
-                      setChanges({
-                        ...changes,
-                        term: (changes.sale_type === 'credit' ? 0 : 12).toFixed(0),
-                        sale_type:
-                          changes.sale_type === 'credit' ? 'cash' : 'credit',
-                        creditor: '',
-                        apr: '0',
-                        filing_fees: '0.00',
-                      });
-
-                      setCid('');
-                    }}
-                  >
-                    {changes.sale_type === 'credit' ? 'Credit' : 'Cash'}
-                  </Button>
-                </Tooltip>
-
-                <PersonSelector
-                  setPid={setPid}
-                  setAid={setAid}
-                  filter="account"
-                  pid={pid}
+                <PercentageInput
+                  formLabel="State Tax"
+                  name={+(changes.tax_state ?? 0)}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setChanges({ ...changes, tax_state: _valueAsString })
+                  }
+                />
+                <PercentageInput
+                  formLabel="City Tax"
+                  name={+(changes.tax_city ?? 0)}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setChanges({ ...changes, tax_city: _valueAsString })
+                  }
+                />
+                <PercentageInput
+                  formLabel="RTD Tax"
+                  name={+(changes.tax_rtd ?? 0)}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setChanges({ ...changes, tax_rtd: _valueAsString })
+                  }
+                />
+                <PercentageInput
+                  formLabel="County Tax"
+                  name={+(changes.tax_county ?? 0)}
+                  onChange={(_valueAsString, valueAsNumber) =>
+                    setChanges({ ...changes, tax_county: _valueAsString })
+                  }
                 />
               </Stack>
 
-              {aid && (
-                <Stack
-                  direction={{
-                    base: 'column',
-                    md: 'row',
-                  }}
-                  w={'full'}
-                  justifyContent={'center'}
-                >
-                  {aid && <AccountCard id={aid} />}
-                  {pid && <PersonCard id={pid} />}
-                </Stack>
-              )}
-
-              <TextInput
-                name="cosigner"
-                label="Cosigner"
-                changes={changes}
-                setChanges={setChanges}
-              />
-
-              <Divider />
-
-              <Flex alignItems={'center'}>
-                <Stack
-                  direction={{
-                    base: 'column',
-                    md: 'row-reverse',
-                  }}
-                  alignItems={'center'}
-                  spacing={{ base: 0, md: 4 }}
-                  justifyItems={'center'}
-                >
-                  <InventorySelector
-                    setPrices={(e) => {
-                      setInventoryPrices(e);
-                      console.info('Got prices', e);
-                    }}
-                    setSelected={setIid}
-                    selected={iid || ''}
-                    state={inventoryState}
-                  />
+              {/* Trades */}
+              <Stack
+                direction={{ base: 'column', md: 'row' }}
+                spacing={{ base: 0, md: 4 }}
+                justifyItems={'center'}
+                alignItems={'center'}
+              >
+                <Stack flexDirection={'column'} gap={4}>
                   <Button
                     colorScheme={'blue'}
-                    variant={'outline'}
-                    onClick={() => setInventoryState(inventoryState === 0 ? 1 : 0)}
+                    isDisabled={trades.length >= 3}
+                    onClick={() => {
+                      setTrades([
+                        ...trades,
+                        {
+                          make: undefined,
+                          model: undefined,
+                          year: undefined,
+                          vin: undefined,
+                        },
+                      ]);
+                    }}
+                    w={'full'}
                   >
-                    {inventoryState === 0 ? 'Current Inventory' : 'All Inventory'}
+                    Add Trade
                   </Button>
                 </Stack>
-                <InventoryCard
-                  simple={true}
-                  withAccounts={false}
-                  inventoryID={iid as string}
-                />
-              </Flex>
-
-              <Divider />
-
-              <Stack spacing={{ base: 4, md: 6 }}>
-                <Stack
-                  direction={{ base: 'column', md: 'row' }}
-                  spacing={{ base: 0, md: 4 }}
-                  alignItems="center"
-                >
-                  {/* TODO: Selling value not updating between credit/cash deals */}
-                  <CurrencyInput
-                    formLabel="Selling Value"
-                    isInvalid={
-                      +inventoryPrices.down >
-                      +(inventoryPrices?.selling || 0) +
-                        +(calculatedFinance?.totalTaxDollar || 0)
-                    }
-                    name={+(inventoryPrices?.selling ?? 0)}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setInventoryPrices({
-                        ...inventoryPrices,
-                        selling: valueAsNumber,
-                      })
-                    }
-                  />
-                  <CurrencyInput
-                    isDisabled={
-                      changes.sale_type === 'cash' ||
-                      !inventoryPrices.selling ||
-                      +inventoryPrices.selling === 0
-                    }
-                    formLabel="Down Payment"
-                    max={+(inventoryPrices.selling || 0) + (+changes.saleTax || 0)}
-                    name={+(inventoryPrices.down ?? 0)}
-                    tooltip={{
-                      label: 'This is the total amount due for this cash deal.',
-                      position: 'top',
-                      disabled: changes.sale_type === 'credit',
-                    }}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setInventoryPrices({ ...inventoryPrices, down: valueAsNumber })
-                    }
-                  />
-                  <CurrencyInput
-                    formLabel="Owed On Down"
-                    max={+inventoryPrices.down}
-                    name={+changes.downOwed ?? 0}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, downOwed: valueAsNumber })
-                    }
-                  />
-                  {changes.sale_type === 'credit' && (
-                    <FormControl
-                      isRequired
-                      w={{ base: '30%', md: '100%', sm: '100%', xs: '100%' }}
-                    >
-                      <FormLabel>Term</FormLabel>
-                      <InputGroup>
-                        <NumberInput
-                          w={'full'}
-                          defaultValue={0}
-                          value={+changes.term}
-                          min={0}
-                          max={changes.sale_type === 'credit' ? 84 : 0}
-                          keepWithinRange
-                          onChange={(_valueAsString, valueAsNumber) => {
-                            if (valueAsNumber === 0) {
-                              setChanges({
-                                ...changes,
-                                sale_type: 'cash',
-                                term: 0,
-                              });
-                            } else {
-                              setChanges({ ...changes, term: valueAsNumber });
-                            }
-                          }}
-                        >
-                          <NumberInputField />
-                          <NumberInputStepper>
-                            <NumberIncrementStepper />
-                            <NumberDecrementStepper />
-                          </NumberInputStepper>
-                        </NumberInput>
-                        <InputRightAddon
-                          bg={'none'}
-                          border={'none'}
-                          cursor={'default'}
-                          userSelect={'none'}
-                        >
-                          Months
-                        </InputRightAddon>
-                      </InputGroup>
-                    </FormControl>
-                  )}
-                </Stack>
-                <Stack
-                  direction={{ base: 'column', md: 'row' }}
-                  spacing={{ base: 0, md: 4 }}
-                >
-                  <PercentageInput
-                    formLabel="State Tax"
-                    name={+(changes.tax_state ?? 0)}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_state: _valueAsString })
-                    }
-                  />
-                  <PercentageInput
-                    formLabel="City Tax"
-                    name={+(changes.tax_city ?? 0)}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_city: _valueAsString })
-                    }
-                  />
-                  <PercentageInput
-                    formLabel="RTD Tax"
-                    name={+(changes.tax_rtd ?? 0)}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_rtd: _valueAsString })
-                    }
-                  />
-                  <PercentageInput
-                    formLabel="County Tax"
-                    name={+(changes.tax_county ?? 0)}
-                    onChange={(_valueAsString, valueAsNumber) =>
-                      setChanges({ ...changes, tax_county: _valueAsString })
-                    }
-                  />
-                </Stack>
-
-                {/* Trades */}
-                <Stack
-                  direction={{ base: 'column', md: 'row' }}
-                  spacing={{ base: 0, md: 4 }}
-                  justifyItems={'center'}
-                  alignItems={'center'}
-                >
-                  <Stack flexDirection={'column'} gap={4}>
-                    <Button
-                      colorScheme={'blue'}
-                      disabled={trades.length >= 3}
-                      onClick={() => {
-                        setTrades([
-                          ...trades,
-                          {
-                            make: undefined,
-                            model: undefined,
-                            year: undefined,
-                            vin: undefined,
-                          },
-                        ]);
+                {trades.map((trade, index) => {
+                  return (
+                    <Stack
+                    outline={'1px solid'}
+                      p={2}
+                      justifyItems={'center'}
+                      alignItems={'center'}
+                      key={`trade-${index}`}
+                      direction={{
+                        base: trades.length > 1 ? 'column' : 'row',
+                        md: trades.length > 1 ? 'column' : 'row',
                       }}
-                      w={'full'}
+                      spacing={{ base: 0, md: 4 }}
                     >
-                      Add Trade
-                    </Button>
-                  </Stack>
-                  {trades.map((trade, index) => {
-                    return (
-                      <Stack
-                        justifyItems={'center'}
-                        alignItems={'center'}
-                        key={`trade-${index}`}
-                        direction={{
-                          base: trades.length > 1 ? 'column' : 'row',
-                          md: trades.length > 1 ? 'column' : 'row',
-                        }}
-                        spacing={{ base: 0, md: 4 }}
+                      <FormControl
+                        isRequired
+                        isInvalid={trade.isInvalid}
+                        display={'flex'}
+                        flexDirection={'column'}
                       >
-                        <FormControl
-                          isRequired
-                          isInvalid={
-                            !trade['make'] ||
-                            Object.keys(trades)
-                              .map((key) => trades[key].vin)
-                              .indexOf(trade.vin) !== index
-                          }
-                          display={'flex'}
-                          flexDirection={'column'}
-                        >
-                          <FormLabel>VIN</FormLabel>
-                          <Input
-                            placeholder="VIN"
-                            value={trade.vin}
-                            onChange={(e) => {
-                              const newTrades = [...trades];
-                              newTrades[index].vin = e.target.value;
-                              setTrades(newTrades);
-                            }}
-                          />
-                          <ButtonGroup w={'full'} my={2}>
-                            <Button
-                              w={'100%'}
-                              disabled={!trades[index].vin}
-                              onClick={() => {
-                                fetch(
-                                  `/api/inventory/${trades[index].vin}/vin`,
-                                ).then(async (res) => {
-                                  const data = await res.json();
-                                  if (data.error) {
-                                    setMessage(data.error);
-                                  } else {
-                                    // Update trades object
-                                    const newTrades = [...trades];
-                                    newTrades[index].make = data.vin.make;
-                                    newTrades[index].model = data.vin.model;
-                                    newTrades[index].year = data.vin.year;
-                                    setTrades(newTrades);
-                                  }
-                                });
-                              }}
-                            >
-                              Lookup
-                            </Button>
-                            {/* Remove trade */}
-                            <Button
-                              w={'50%'}
-                              onClick={() => {
-                                const newTrades = [...trades];
-                                newTrades.splice(index, 1);
-                                setTrades(newTrades);
-                              }}
-                            >
-                              Remove
-                            </Button>
-                          </ButtonGroup>
-                          {trades[index].make && trades[index].model && (
-                            <Text>
-                              {formatInventory({
-                                make: trades[index].make,
-                                model: trades[index].model,
-                                year: trades[index].year,
-                              })}
-                            </Text>
-                          )}
-                        </FormControl>
-                        <CurrencyInput
-                          formLabel="Trade Value"
-                          isInvalid={
-                            trades.reduce(
-                              (acc, trade) => acc + (trade.value ?? 0),
-                              0,
-                            ) +
-                              (+inventoryPrices.down || 0) >
-                              Math.max(
-                                +changes.totalLoanAmount,
-                                +changes.totalOwed,
-                              ) || !trade.value
-                          }
-                          name={+(trade.value ?? 0)}
-                          onChange={(_valueAsString, valueAsNumber) => {
+                        <FormLabel>VIN</FormLabel>
+                        <Input
+                          placeholder="VIN"
+                          value={trade.vin}
+                          onChange={(e) => {
                             const newTrades = [...trades];
-                            newTrades[index].value = valueAsNumber;
+                            newTrades[index] = {
+                              vin: e.target.value,
+                            }
                             setTrades(newTrades);
                           }}
                         />
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-
-                <Stack direction={{ base: 'column', lg: 'row' }}>
-                  {changes.sale_type === 'credit' && (
-                    <PersonSelector
-                      // isInvalid={typeof changes.creditor === 'undefined'}
-                      filter="creditor"
-                      pid={cid}
-                      onChange={(e: PersonCreditor) => {
-                        console.log('e', e);
-                        setChanges((changes) => ({
-                          ...changes,
-                          creditor: e.id,
-                          filing_fees: e.filing_fees,
-                          apr: e.apr,
-                        }));
-                      }}
-                      label={'Creditor'}
-                    />
-                  )}
-                  <PersonSelector
-                    filter="salesman"
-                    setPid={setSid}
-                    pid={sid}
-                    label={'Salesman'}
-                  />
-                  <FormControl isRequired>
-                    <FormLabel>Date Purchased</FormLabel>
-                    <Input
-                      type={'date'}
-                      value={changes.date}
-                      onChange={(e) => {
-                        setChanges({ ...changes, date: e.target.value });
-                      }}
-                    />
-                  </FormControl>
-
-                  {changes.sale_type == 'credit' && (
-                    <Flex
-                      // align rightmost
-                      justifyContent={'flex-end'}
-                      w={'100%'}
-                    >
-                      <FormControl w={'min-content'}>
-                        <FormLabel w={'max-content'}>Filing Fees</FormLabel>
-                        <Text>
-                          {financeFormat({ num: +changes.filing_fees || 0 })}
-                        </Text>
-                      </FormControl>
-                      <FormControl w={'min-content'}>
-                        <FormLabel>APR</FormLabel>
-                        <Text>{financeFormat({ num: +changes.apr || 0 })}</Text>
-                      </FormControl>
-                    </Flex>
-                  )}
-                </Stack>
-                <Divider />
-              </Stack>
-              <Stack
-                display={forms.length > 0 ? 'block' : 'none'}
-                direction={{ base: 'row', sm: 'column' }}
-                spacing={{ base: 2, md: 4 }}
-                w={'100%'}
-                verticalAlign={'center'}
-              >
-                <Heading as="h3">{forms.length > 0 && 'Forms'}</Heading>
-                <Stack
-                  direction={{ base: 'column', sm: 'row' }}
-                  spacing={{ base: 2, md: 4 }}
-                >
-                  <Button
-                    colorScheme="blue"
-                    variant="solid"
-                    h={'5ch'}
-                    minW={'max-content'}
-                    onClick={forms.length > 0 ? () => downloadZip(forms) : undefined}
-                  >
-                    {<FaFileDownload />}{' '}
-                    {
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: '3ch',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          // backgroundColor: "white",
-                          fontFamily: 'monospace',
-                        }}
-                      >
-                        Zip
-                      </span>
-                    }
-                  </Button>
-                  <Select placeholder="Select a form">
-                    {forms.map((form, index) => {
-                      const title = Object.keys(form)[0];
-                      const url = Object.values(form)[0];
-
-                      if (!url) {
-                        return <></>;
-                      }
-
-                      try {
-                        return (
-                          <option
+                        <ButtonGroup w={'full'} my={2}>
+                          {/* Remove trade */}
+                          <Button
+                            w={'full'}
+                            colorScheme={'red'}
+                            variant={'ghost'}
                             onClick={() => {
-                              const a = document.createElement('a');
-                              a.href = 'forms/filled/' + url;
-                              a.download = `${title}.pdf`;
-                              document.body.appendChild(a);
-                              a.click();
-                              document.body.removeChild(a);
+                              const newTrades = [...trades];
+                              newTrades.splice(index, 1);
+                              setTrades(newTrades);
                             }}
-                            key={index}
                           >
-                            {title.split('-')[1].trim()}
-                          </option>
-                        );
-                      } catch (error) {
-                        console.error(error, { title, url, type: typeof url });
-                        return <></>;
-                      }
-                    })}
-                  </Select>
-                </Stack>
+                            Remove
+                          </Button>
+                        </ButtonGroup>
+                        {trades[index].make && trades[index].model && (
+                          <Text>
+                            {formatInventory({
+                              make: trades[index].make,
+                              model: trades[index].model,
+                              year: trades[index].year,
+                            })}
+                          </Text>
+                        )}
+                      </FormControl>
+                      <CurrencyInput
+                        formLabel="Trade Value"
+                        isInvalid={
+                          trades.reduce(
+                            (acc, trade) => acc + (trade.value ?? 0),
+                            0,
+                          ) +
+                            (+inventoryPrices.down || 0) >
+                            Math.max(+changes.totalLoanAmount, +changes.totalOwed) ||
+                          !trade.value
+                        }
+                        name={+(trade.value ?? 0)}
+                        onChange={(_valueAsString, valueAsNumber) => {
+                          const newTrades = [...trades];
+                          newTrades[index].value = valueAsNumber;
+                          setTrades(newTrades);
+                        }}
+                      />
+                    </Stack>
+                  );
+                })}
+              </Stack>
+
+              <Stack direction={{ base: 'column', lg: 'row' }}>
+                {changes.sale_type === 'credit' && (
+                  <PersonSelector
+                    // isInvalid={typeof changes.creditor === 'undefined'}
+                    filter="creditor"
+                    pid={cid}
+                    onChange={(e: PersonCreditor) => {
+                      console.log('e', e);
+                      setChanges((changes) => ({
+                        ...changes,
+                        creditor: e.id,
+                        filing_fees: e.filing_fees,
+                        apr: e.apr,
+                      }));
+                    }}
+                    label={'Creditor'}
+                  />
+                )}
+                <PersonSelector
+                  filter="salesman"
+                  setPid={setSid}
+                  pid={sid}
+                  label={'Salesman'}
+                />
+                <FormControl isRequired>
+                  <FormLabel>Date Purchased</FormLabel>
+                  <Input
+                    type={'date'}
+                    value={changes.date}
+                    onChange={(e) => {
+                      setChanges({ ...changes, date: e.target.value });
+                    }}
+                  />
+                </FormControl>
+
+                {changes.sale_type == 'credit' && (
+                  <Flex
+                    // align rightmost
+                    justifyContent={'flex-end'}
+                    w={'100%'}
+                  >
+                    <FormControl w={'min-content'}>
+                      <FormLabel w={'max-content'}>Filing Fees</FormLabel>
+                      <Text>
+                        {financeFormat({ num: +changes.filing_fees || 0 })}
+                      </Text>
+                    </FormControl>
+                    <FormControl w={'min-content'}>
+                      <FormLabel>APR</FormLabel>
+                      <Text>{financeFormat({ num: +changes.apr || 0 })}</Text>
+                    </FormControl>
+                  </Flex>
+                )}
               </Stack>
               <Divider />
-              <AboutDeal />
             </Stack>
-          </div>
+            <Stack
+              display={forms.length > 0 ? 'block' : 'none'}
+              direction={{ base: 'row', sm: 'column' }}
+              spacing={{ base: 2, md: 4 }}
+              w={'100%'}
+              verticalAlign={'center'}
+            >
+              <Heading as="h3">{forms.length > 0 && 'Forms'}</Heading>
+              <Stack
+                direction={{ base: 'column', sm: 'row' }}
+                spacing={{ base: 2, md: 4 }}
+              >
+                <Button
+                  colorScheme="blue"
+                  variant="solid"
+                  h={'5ch'}
+                  minW={'max-content'}
+                  onClick={forms.length > 0 ? () => downloadZip(forms) : undefined}
+                >
+                  {<FaFileDownload />}{' '}
+                  {
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        width: '3ch',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        // backgroundColor: "white",
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      Zip
+                    </span>
+                  }
+                </Button>
+                <Select placeholder="Select a form">
+                  {forms.map((form, index) => {
+                    const title = Object.keys(form)[0];
+                    const url = Object.values(form)[0];
 
-          {/* {MemoizedSchedule} */}
-          {/*{changes.sale_type === 'credit' && (*/}
-          {/*  <RenderAmortizationSchedule*/}
-          {/*    changes={changes}*/}
-          {/*    calculatedFinance={calculatedFinance}*/}
-          {/*    chartId="amortizationSchedule"*/}
-          {/*  />*/}
-          {/*)}*/}
+                    if (!url) {
+                      return <></>;
+                    }
 
-          {/* <BarChart/> */}
-          {/*
+                    try {
+                      return (
+                        <option
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = url
+                            a.target = '_blank'
+                            a.download = `${title}.pdf`;
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+                          }}
+                          key={index}
+                        >
+                          {title.split('-')[1].trim()}
+                        </option>
+                      );
+                    } catch (error) {
+                      console.error(error, { title, url, type: typeof url });
+                      return <></>;
+                    }
+                  })}
+                </Select>
+              </Stack>
+            </Stack>
+            <Divider />
+            <AboutDeal />
+          </Stack>
+        </Box>
+
+        {/* {MemoizedSchedule} */}
+        {/*{changes.sale_type === 'credit' && (*/}
+        {/*  <RenderAmortizationSchedule*/}
+        {/*    changes={changes}*/}
+        {/*    calculatedFinance={calculatedFinance}*/}
+        {/*    chartId="amortizationSchedule"*/}
+        {/*  />*/}
+        {/*)}*/}
+
+        {/* <BarChart/> */}
+        {/*
           {
       label: "Dataset 1",
       data: [300, 50, 100, 40, 120],
       backgroundColor: ["#080705", "#40434e", "#702632", "#912f40", "#b33a4f"],
     },
       */}
-        </>
-      </FormWrap>
-    </Stack>
+        <ButtonGroup>
+          <Button type="submit" colorScheme={'blue'} w={'full'}>
+            Save
+          </Button>
+
+        </ButtonGroup>
+      </Stack>
+    </StackWrap>
   );
 }
