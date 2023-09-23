@@ -1,15 +1,18 @@
-import { memo, useEffect, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
   Button,
   FormControl,
   FormLabel,
+  IconButton,
+  InputGroup,
   Select,
   Spacer,
   Stack,
 } from '@chakra-ui/react';
 import { People } from '@/types/prisma/person';
 import formatPreposition from '@/utils/format/formatPreposition';
+import { BiRefresh } from 'react-icons/bi';
 
 function PersonSelector(props: {
   pid?: string | null;
@@ -32,20 +35,34 @@ function PersonSelector(props: {
   const [filter, setFilter] = useState<'creditor' | 'salesman' | 'account' | 'all'>(
     props.filter || 'all',
   );
+  const [isFetching, setIsFetching] = useState<boolean>(false);
 
   const isCreditor = filter === 'creditor';
   const isSalesman = filter === 'salesman';
+
+  const id = `person-selector-${props.label || 'person'}`;
+
+  const fetchPeople = useCallback(async () => {
+    setIsFetching(true);
+    fetch('/api/person')
+    .then((r) => r.json())
+    .then((data) => {
+      setPeople(data);
+    }).finally(() => {
+      setIsFetching(false);
+    }
+    );
+  }, []);
 
   useEffect(() => {
     if (typeof props.people !== 'undefined') {
       return;
     }
-    fetch('/api/person')
-      .then((r) => r.json())
-      .then((data) => {
-        setPeople(data);
-      });
+
+    fetchPeople();
+
   }, [props.people]);
+
 
   // Filter people by
   const filteredPeople = useMemo(() => {
@@ -75,12 +92,14 @@ function PersonSelector(props: {
     >
       <FormControl
         isRequired={true}
-        isDisabled={props.isDisabled}
+        isDisabled={props.isDisabled || isFetching}
         isInvalid={props.isInvalid === true}
       >
         {props.label ? <FormLabel>{props.label}</FormLabel> : null}
+        <InputGroup>
         <Select
-          isDisabled={props.isDisabled}
+          id={id}
+          isDisabled={props.isDisabled || isFetching}
           isInvalid={props.isInvalid}
           onChange={(e) => {
             e.preventDefault();
@@ -144,6 +163,8 @@ function PersonSelector(props: {
             );
           })}
         </Select>
+        <IconButton aria-label='Refetch people' icon={<BiRefresh/>} onClick={fetchPeople} isLoading={isFetching} />
+        </InputGroup>
       </FormControl>
 
       <Spacer />
