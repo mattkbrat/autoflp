@@ -114,7 +114,6 @@ const InventoryForm = (props: {
     fetch(url)
       .then((res) => res.json())
       .then((data) => {
-        console.info('Got inventory', data);
         setFetchedInventory(data);
       });
   }, [inventoryLookupType]);
@@ -142,7 +141,6 @@ const InventoryForm = (props: {
         .then((res) => res.json())
         .then((data) => {
           setChanges({});
-          console.info('Fetched inventory', data, inventoryId);
           data?.id === inventoryId && setChanges(data);
           if (!setInventoryPrices) {
             return;
@@ -181,6 +179,16 @@ const InventoryForm = (props: {
     });
   }, [changes, setIid, setInventoryPrices]);
 
+  // Search vin when vin is 17 characters long
+  useEffect(() => {
+
+    if (!changes?.vin) {
+      return;
+    }
+
+    changes.vin?.length === 17 && searchVin();
+  }, [changes?.vin]);
+
   const filteredInventory = useMemo(() => {
     if (filter === '') {
       if (Array.isArray(fetchedInventory)) {
@@ -205,7 +213,7 @@ const InventoryForm = (props: {
     }
   }, [fetchedInventory, filter]);
 
-  async function searchVin(e: FormEvent<HTMLFormElement | HTMLButtonElement>) {
+  async function searchVin() {
     const vin = changes.vin;
     if (!vin) {
       setMessage('Please enter a VIN');
@@ -432,6 +440,7 @@ const InventoryForm = (props: {
                 <TextInput
                   value={changes.vin}
                   name="vin"
+                  isDisabled={searchingVin}
                   setChanges={setChanges}
                   changes={changes}
                   isInvalid={changes.vin?.length !== 17}

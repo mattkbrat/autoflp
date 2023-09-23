@@ -80,10 +80,10 @@ export const DealCard = ({ deal }: { deal: SimpleDeal }) => {
       </Text>
       {deal.status ? (
         <ButtonGroup>
-          <Button onClick={onOpen} variant={'outline'} colorScheme={'green'}>
+          <Button w={'full'} onClick={onOpen} variant={'outline'} colorScheme={'green'}>
             Take Payment
           </Button>
-          <Button onClick={closeDeal} variant={'outline'} colorScheme={'red'}>
+          <Button w={'33%'} onClick={closeDeal} variant={'outline'} colorScheme={'red'}>
             Close Deal
           </Button>
         </ButtonGroup>

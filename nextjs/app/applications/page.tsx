@@ -54,8 +54,6 @@ const ApplicationsPage = async () => {
 
   const [headers, ...rows] = range;
 
-  console.log('headers', headers, rows[rows.length - 1]);
-
   let newApplication = {} as CreditApplication;
 
   rows.forEach((row) => {

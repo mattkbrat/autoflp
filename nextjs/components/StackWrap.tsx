@@ -1,33 +1,19 @@
-import { Heading, Stack } from '@chakra-ui/react';
+import { useColors } from '@/hooks/useColors';
+import { Heading, Stack, StackProps } from '@chakra-ui/react';
 
 type stackDirection = 'row' | 'column';
 
-export default function StackWrap(props: {
-  children: React.ReactNode;
-  direction?: stackDirection;
-  spacing?: number | string | string[];
-  align?: string;
-  alignItems?: string;
-  justifyItems?: string;
-  justify?: string;
-  divider?: boolean;
-  bg?: string;
-  backdropBlur?: string;
-  border?: boolean;
-  heading?: JSX.Element | string;
-  padding?: number | string | { base?: number | string; md?: number | string };
-  boxShadow?: string | undefined;
-  m?: number | string | undefined;
-  position?: string | undefined;
-  overflow?: boolean;
-  w?: string;
-}) {
+export default function StackWrap({heading, ...props} : {heading: string} & StackProps) {
+
+  
+  const colors = useColors();
+
+  const bg = props.bg || colors.accent;
+
   const {
-    padding = 1,
-    bg = 'hsla(0, 0%, 100%, 0.1)',
+    padding = 4,
     m = 'none',
     backdropBlur = true,
-    heading = undefined,
     border = false,
     children,
     direction = 'column',

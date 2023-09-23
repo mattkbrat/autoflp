@@ -23,8 +23,8 @@ function FormWrap<T extends anyObject | null>(props: {
   children: JSX.Element;
   title?: string;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
-  onDelete?: (e: React.MouseEvent<HTMLButtonElement>) => void;
-  onReset?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onDelete?: () => void;
+  onReset?: () => void;
   deleteLabel?: string;
   formType?: 'new' | 'edit';
   changes: T;
@@ -85,8 +85,7 @@ function FormWrap<T extends anyObject | null>(props: {
   }, [formMessage, toast]);
 
   const handleReset = (e: React.MouseEvent<HTMLButtonElement>) => {
-    onReset && onReset(e);
-    setChanges(null);
+    onReset ? onReset() : setChanges(null);
   };
 
   if (loading) {
