@@ -163,9 +163,6 @@ const CreditAppsPage = ({ apps }: { apps: CreditApplication[] }) => {
           </Button>
         </Stack>
       </Stack>
-      <pre>
-        <code>{JSON.stringify(selected, null, 2)}</code>
-      </pre>
     </StackLayout>
   );
 };
