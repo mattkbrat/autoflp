@@ -60,8 +60,6 @@ export default function LoginForm() {
         router.push('/');
       }, 5000);
     }
-
-    console.log(json);
   };
 
   return (

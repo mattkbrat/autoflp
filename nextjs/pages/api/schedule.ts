@@ -20,8 +20,6 @@ async function fetchCustomerAmortizationSchedule(
 ) {
   const { id } = req.query;
 
-  console.log(req.body, req.query);
-
   let scheduleFetchParams: {
     history?: FinanceHistory;
     principal: number;

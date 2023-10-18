@@ -21,8 +21,6 @@ async function dealFetcher(req: NextApiRequest, res: NextApiResponse) {
       ? 0
       : undefined;
 
-  console.log(req.body, req.query, req.method);
-
   switch (req.method) {
     case 'GET':
       if (lookupType !== 1 && lookupType !== 0 && lookupType !== undefined) {

@@ -18,8 +18,6 @@ const InventoryWithDealsHandler = async (
 
   const idIsVin = id.length === 17;
 
-  console.log(idIsVin);
-
   return res.send(await getInventoryWithDeals(
     idIsVin ? { vin: id } :
     { inventoryId: id}

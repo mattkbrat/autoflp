@@ -8,7 +8,6 @@ const fetchUnsplash = async (query: string) => {
     client_id: process.env.UNSPLASH_ACCESS_KEY as string,
   });
   const url = `https://api.unsplash.com/search/photos/?${urlParams.toString()}`;
-  console.log(url);
   return fetch(url);
 };
 
@@ -25,8 +24,6 @@ export default async function unsplashPhotoHandler(
   const fetched = await fetchUnsplash(query as string);
 
   const json = await fetched.json();
-
-  console.log(json);
 
   const { results } = json;
 

@@ -44,8 +44,6 @@ function salesTaxReceiptDataCompiler(deal: DealWithRelevant) {
     };
   });
 
-  console.log(trades);
-
   const totalTradeValue = trades.reduce(
     (acc, trade) => acc + +(trade.value || 0),
     0,

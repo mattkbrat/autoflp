@@ -21,8 +21,6 @@ const InventoryPage = async ({searchParams, inventory = null}: {
     inventory = await getInventoryWithDeals({ inventoryId: id });
   }
 
-  console.log(inventory)
-
   return (
     <div>
       {

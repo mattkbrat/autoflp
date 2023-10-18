@@ -96,14 +96,10 @@ async function generateCreditApplicationForm({
   try {
     const appFormObj = creditFormBuilder(app);
 
-    console.log('appFormObj', appFormObj, app);
-
     const person = fullNameFromPerson({
       first_name: app.firstName,
       last_name: app.lastName,
     });
-
-    console.log('person', person);
 
     if (!output) {
       const generatedOutput = generateOutputFilename({

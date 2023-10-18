@@ -15,8 +15,6 @@ const InventoryByIdHandler = async (req: NextApiRequest, res: NextApiResponse) =
 
   const idIsVin = typeof id === 'string' && id.length === 17;
 
-  console.log(idIsVin, id);
-
   if (!user) return res.status(401).json({ message: 'Unauthorized' });
 
   if (typeof id !== 'string')

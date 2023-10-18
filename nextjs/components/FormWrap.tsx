@@ -73,8 +73,6 @@ function FormWrap<T extends anyObject | null>(props: {
       return;
     }
 
-    console.log(messageSplit);
-
     toast({
       title: messageSplit[0] || 'Message',
       description: messageSplit.length > 1 ? messageSplit[1] : formMessage,

@@ -235,13 +235,6 @@ const createDeal = async ({
 
   const formattedInventory = formatInventory(inventory);
 
-  console.log(
-    {
-      newDeal,
-    },
-    dealId,
-  );
-
   await notifyDeal({
     fullName: fullNameFromPerson(newDeal.Account.person),
     invString: formattedInventory,

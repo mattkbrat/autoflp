@@ -17,8 +17,6 @@ const HomeV2 = dynamic(() => import('@/components/Home/HomeV2'), {
 const Page = async ({searchParams, ...props}) => {
   const user = await getRequestCookie(cookies());
 
-  console.log(props);
-
   let inventory: InventoryWithDeals | null = null;
 
   if (searchParams.inventory) {
@@ -28,8 +26,6 @@ const Page = async ({searchParams, ...props}) => {
   if (!user) {
     redirect('/auth/login');
   }
-
-  console.log(inventory)
 
   const businessData = getBusinessData();
   

@@ -396,9 +396,6 @@ const InventoryForm = (props: {
                       params.set('inventory', e.target.value)
                       const newRoute = `${pathname}?${params.toString()}`
 
-                      console.log(currentParams, params.toString())
-
-
                       router.push(newRoute);
                     }}
                   >
