@@ -661,7 +661,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
     onClose();
   }
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = (e: React.FormEvent<HTMLFormElement | HTMLDivElement>) => {
     e.preventDefault();
     if (!performPrechecks()) {
       return;
@@ -675,7 +675,7 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
   };
 
   return (
-    <StackWrap>
+    <StackWrap heading={false}>
       {isOpen && (
         <AlertDialog
           size={'6xl'}
@@ -871,7 +871,10 @@ export function DealForm(props: { id: string; businessData: BusinessData }) {
       )}
 
       <Heading>{changes.sale_type === 'credit' ? 'Credit' : 'Cash'} Deal</Heading>
-      <Stack as={'form'} onSubmit={onSubmit}>
+      <Stack as={'form'} onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit(e)
+      }}>
         <Box className={globals.no_print}>
           <Stack spacing={{ base: 0, md: 4 }}>
             {debug && (

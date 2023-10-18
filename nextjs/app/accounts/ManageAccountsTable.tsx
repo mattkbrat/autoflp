@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import { Button, ButtonGroup, Divider } from '@chakra-ui/react';
@@ -9,6 +9,14 @@ import BasicReactTable from '@/components/table/Table';
 import { AccountsWithRelevant } from '@/types/prisma/accounts';
 
 const ManageAccountsTable = ({ data }: { data: AccountsWithRelevant[number][] }) => {
+
+  const [filter, setFilter] = useState<null | 'complete' | 'active'>(null)
+
+  const filteredData = useMemo(() => {
+    if (!filter) return data;
+    return data.filter((a) => a?.deal_deal_accountToaccount && a.deal_deal_accountToaccount.filter((d) => d.state === (filter === 'complete' ? 0 : 1)).length > 0)
+  }, [data, filter])
+
   const AccountTableColumns = useMemo<ColumnDef<AccountsWithRelevant[number]>[]>(
     () => [
       {
@@ -49,16 +57,16 @@ const ManageAccountsTable = ({ data }: { data: AccountsWithRelevant[number][] })
   return (
     <>
       <ButtonGroup alignSelf={'center'}>
-        <Button variant={'link'}>Complete Deals</Button>
+        <Button onClick={() => setFilter('complete')} variant={'link'}>Complete Deals</Button>
         <Divider orientation={'vertical'} />
-        <Button variant={'link'}>Active Deals</Button>
+        <Button onClick={() => setFilter('active')} variant={'link'}>Active Deals</Button>
         <Divider orientation={'vertical'} />
-        <Button variant={'link'}>All Accounts</Button>
+        <Button onClick={() => setFilter(null)} variant={'link'}>All Accounts</Button>
       </ButtonGroup>
 
       <BasicReactTable
         refresh={() => {}}
-        data={data}
+        data={filteredData}
         columns={AccountTableColumns}
         heading={'Accounts'}
       />
