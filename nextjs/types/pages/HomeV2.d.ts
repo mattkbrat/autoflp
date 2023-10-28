@@ -8,6 +8,7 @@ type HomeV2Props = {
   businessData: BusinessData;
   accounts: AccountsWithRelevant;
   applications: CreditApplication[] | null;
+  currentTab: number;
 };
 
 export default HomeV2Props;

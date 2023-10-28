@@ -94,23 +94,46 @@ const PaymentForm = ({
     date: new Date(),
   });
 
-  useEffect(() => {
-    fetch(`/api/deal/${dealId}`).then(async (res) => {
-      const data: AccountsWithRelevantWithPayments = await res.json();
-      setSelectedCustomer(data);
-      setChanges({
-        ...changes,
-        payment: +(data.deal_deal_accountToaccount?.[0]?.pmt || 0),
-      });
-    });
-  }, [dealId]);
-
   const thisDeal = useMemo(() => {
     if (!selectedCustomer) return null;
     return (selectedCustomer.deal_deal_accountToaccount.find(
       (d) => d.id === dealId,
     ) || null) as AccountWithRelevantDeal | null;
   }, [selectedCustomer, dealId]);
+
+  const amountOwed = useMemo(() => {
+    const lien = parseFloat(thisDeal?.lien || '0');
+    let totalPaid = 0;
+    selectedCustomer?.payment?.forEach((payment) => {
+      totalPaid += payment?.amount ? parseFloat(payment?.amount) : 0;
+    });
+    return lien - totalPaid;
+  }, [selectedCustomer, thisDeal]);
+
+  useEffect(() => {
+    fetch(`/api/deal/${dealId}`).then(async (res) => {
+      const data: AccountsWithRelevantWithPayments = await res.json();
+      setSelectedCustomer(data);
+    });
+  }, [dealId, amountOwed]);
+
+  useEffect(() => {
+    if (!selectedCustomer) {
+      return;
+    }
+
+    const maxAmountOwed = Math.min(
+      amountOwed,
+      +(selectedCustomer?.deal_deal_accountToaccount?.[0]?.pmt || 0),
+    );
+
+    setChanges((c) => {
+      return {
+        ...c,
+        payment: maxAmountOwed,
+      };
+    });
+  }, [selectedCustomer, amountOwed]);
 
   const thisInventory = useMemo(() => {
     if (!selectedCustomer) return '';
@@ -121,15 +144,6 @@ const PaymentForm = ({
     if (!selectedCustomer) return '';
     return fullNameFromPerson(selectedCustomer.person);
   }, [selectedCustomer]);
-
-  const amountOwed = useMemo(() => {
-    const lien = parseFloat(thisDeal?.lien || '0');
-    let totalPaid = 0;
-    selectedCustomer?.payment?.forEach((payment) => {
-      totalPaid += payment?.amount ? parseFloat(payment?.amount) : 0;
-    });
-    return lien - totalPaid;
-  }, [selectedCustomer, thisDeal]);
 
   // useEffect(() => {
   //
@@ -369,7 +383,7 @@ const PaymentForm = ({
                       {Intl.NumberFormat('en-US', {
                         style: 'currency',
                         currency: 'USD',
-                      }).format(amountOwed - +(changes?.payment || 0))}
+                      }).format(Math.abs(amountOwed - +(changes?.payment || 0)))}
                     </Td>
                   </Tr>
                 </Tfoot>

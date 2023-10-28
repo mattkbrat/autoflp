@@ -12,7 +12,11 @@ const HomeV2 = dynamic(() => import('@/components/Home/HomeV2'), {
   ssr: false,
 });
 
-const Page = async ({ searchParams }: { searchParams: { inventory: string } }) => {
+const Page = async ({
+  searchParams,
+}: {
+  searchParams: { inventory: string; tab: string };
+}) => {
   const user = await getRequestCookie(cookies());
 
   const businessData = getBusinessData();
@@ -42,6 +46,7 @@ const Page = async ({ searchParams }: { searchParams: { inventory: string } }) =
       accounts={accounts}
       selectedInventory={inventory}
       applications={applications}
+      currentTab={Number(searchParams.tab || 0)}
     />
   );
 };

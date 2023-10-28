@@ -1,5 +1,10 @@
 import { BusinessData } from '@/types/BusinessData';
-import { FinanceCalcResult, FinanceHistory, ParsedAmortizationSchedule, ScheduleRow } from '@/types/Schedule';
+import {
+  FinanceCalcResult,
+  FinanceHistory,
+  ParsedAmortizationSchedule,
+  ScheduleRow,
+} from '@/types/Schedule';
 import { amortizationSchedule, delinquent, financeHistory } from '@/utils/finance';
 import financeCalc from '@/utils/finance/calc';
 import { getBusinessData } from '@/utils/formBuilder/functions';
@@ -7,7 +12,6 @@ import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { getDealPayments } from '@/utils/prisma/payment';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ScheduleType } from '../schedule';
-
 
 type scheduleType = ScheduleRow[];
 
@@ -46,7 +50,7 @@ async function fetchCustomerAmortizationSchedule(
   let calculatedFinance;
 
   if (typeof id === 'string') {
-    const fetchedPayments = await getDealPayments({deal: id as string});
+    const fetchedPayments = await getDealPayments({ deal: id as string });
 
     if (fetchedPayments === null) {
       return res.status(404).json({ error: 'No payments found' });
@@ -68,8 +72,7 @@ async function fetchCustomerAmortizationSchedule(
         filingFees: +(
           fetchedPayments.dealCharges
             .filter((a) => a.charges?.name === 'Filing Fees')
-            .reduce((a, b) => a + +(b.charges?.amount || 0), 0) ||
-          0
+            .reduce((a, b) => a + +(b.charges?.amount || 0), 0) || 0
         ),
         apr: +fetchedPayments.apr,
         term: +fetchedPayments.term,
@@ -158,7 +161,7 @@ async function fetchCustomerAmortizationSchedule(
   const result: ParsedAmortizationSchedule = {
     schedule: scheduleParts,
     pmt: schedule.pmt,
-    principal: schedule.principal || 0,
+    principal: Math.max(schedule.principal || 0, 0),
     hasHistory: scheduleFetchParams.history !== undefined,
     startDate: new Date(
       schedule.startDate ||

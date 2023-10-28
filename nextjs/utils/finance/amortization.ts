@@ -167,7 +167,7 @@ function amortizationSchedule({
 
   return {
     pmt,
-    principal,
+    principal: Math.max(principal, 0),
     schedule: tempSchedule,
     startDate,
     endDate,

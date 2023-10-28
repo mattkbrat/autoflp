@@ -182,7 +182,6 @@ const InventoryForm = (props: {
 
   // Search vin when vin is 17 characters long
   useEffect(() => {
-
     if (!changes?.vin) {
       return;
     }
@@ -242,7 +241,7 @@ const InventoryForm = (props: {
       });
   }
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement | HTMLDivElement>) {
+  async function handleSubmit(e?: FormEvent<HTMLFormElement | HTMLDivElement>) {
     e?.preventDefault();
     const updates = {
       ...changes,
@@ -388,13 +387,14 @@ const InventoryForm = (props: {
                     }
                     value={inventoryId ?? ''}
                     onChange={(e) => {
+                      let currentParams = document.location.href
+                        .split('?')
+                        .slice(-1)[0];
+                      if (currentParams.includes('http')) currentParams = '';
 
-                      let currentParams = document.location.href.split("?").slice(-1)[0];
-                      if (currentParams.includes('http')) currentParams = ""
-
-                      const params = new URLSearchParams(currentParams)
-                      params.set('inventory', e.target.value)
-                      const newRoute = `${pathname}?${params.toString()}`
+                      const params = new URLSearchParams(currentParams);
+                      params.set('inventory', e.target.value);
+                      const newRoute = `${pathname}?${params.toString()}`;
 
                       router.push(newRoute);
                     }}
@@ -592,17 +592,34 @@ const InventoryForm = (props: {
               >
                 Save
               </Button>
-              <Button
-                onClick={handleClose}
-                colorScheme="red"
-                variant={'outline'}
-                size="md"
-                w={'25%'}
-                fontSize="md"
-                isLoading={loading}
-              >
-                Close
-              </Button>
+              {changes.id && changes.state === 0 ? (
+                <Button
+                  onClick={async (e) => {
+                    changes.state = 1;
+                    await handleSubmit();
+                  }}
+                  colorScheme="blue"
+                  variant={'outline'}
+                  size="md"
+                  w={'25%'}
+                  fontSize="md"
+                  isLoading={loading}
+                >
+                  Re-Open
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleClose}
+                  colorScheme="red"
+                  variant={'outline'}
+                  size="md"
+                  w={'25%'}
+                  fontSize="md"
+                  isLoading={loading}
+                >
+                  Close
+                </Button>
+              )}
             </ButtonGroup>
           </Stack>
         </TabPanel>
