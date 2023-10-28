@@ -113,12 +113,8 @@ function PersonSelector(props: {
               return person.id === id;
             });
 
-            console.log('person', person);
-
             if (props.onChange && person) {
-              console.log('person', person);
               if (isCreditor) {
-                console.log('person.creditors[0]', person.creditors);
                 return props.onChange(person.creditors[0]);
               }
               return props.onChange(person);

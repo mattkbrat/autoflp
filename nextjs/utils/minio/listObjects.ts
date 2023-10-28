@@ -12,7 +12,7 @@ const listObjects = async (bucketName: string, prefix: string) => {
       console.error(err);
     })
     .on('end', () => {
-      console.log('End');
+      // Do nothing
     });
 
   return matchingFiles.filter(Boolean) as string[];

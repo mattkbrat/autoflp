@@ -119,10 +119,6 @@ function delinquent(deal: DealPayments, month: number | undefined = undefined) {
   //   checkDate,
   // });
 
-  if (+returnObj.paidThisMonth > 0) {
-    console.log(returnObj.paidThisMonth);
-  }
-
   return returnObj;
 }
 

@@ -97,7 +97,6 @@ const PaymentForm = ({
   useEffect(() => {
     fetch(`/api/deal/${dealId}`).then(async (res) => {
       const data: AccountsWithRelevantWithPayments = await res.json();
-      console.log(data);
       setSelectedCustomer(data);
       setChanges({
         ...changes,

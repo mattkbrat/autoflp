@@ -31,7 +31,6 @@ const CreditAppsPage = ({ apps }: { apps: CreditApplication[] }) => {
     })
       .then((res) => res.json())
       .then((res) => {
-        console.log(res);
         res ? window.open(res.url, '_blank') : alert('Error generating PDF');
       });
   };

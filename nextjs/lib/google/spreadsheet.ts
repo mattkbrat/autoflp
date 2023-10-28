@@ -1,5 +1,6 @@
 import { JWT } from 'google-auth-library';
 import { GoogleSpreadsheet } from 'google-spreadsheet';
+import { attempt } from 'lodash';
 
 const sheetID = process.env.GOOGLE_SHEET_ID;
 const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
@@ -31,7 +32,7 @@ const spreadsheet = async (sheetIndex = 0) => {
 
       const sheet = doc.sheetsByIndex[sheetIndex];
 
-      console.log('Loaded doc: ' + doc.title, {
+      console.info('Loaded doc: ' + doc.title, {
         sheet: sheet.title,
         id: sheet.sheetId,
         rows: doc.sheetsByIndex[sheetIndex].rowCount,
@@ -39,10 +40,9 @@ const spreadsheet = async (sheetIndex = 0) => {
 
       return sheet;
     } catch (error) {
-      console.error(error);
+      console.warn(attempt, ") Error loading sheet", error);
       if (_attempt < 3) {
         setTimeout(() => {
-          console.log('Trying again...');
           return tryConnection(_attempt + 1);
         }, 1000);
       } else {

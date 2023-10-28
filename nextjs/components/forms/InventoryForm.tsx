@@ -10,7 +10,7 @@ import {
   useState,
 } from 'react';
 
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import {
   Box,
@@ -66,6 +66,7 @@ const InventoryForm = (props: {
 }) => {
   const router = useRouter();
   const toast = useToast();
+  const pathname = usePathname();
 
   const [changes, setChanges] = useState<Partial<InventoryWithDeals>>({});
   const [vinLookup, setVinLookup] = useState<string>('');
@@ -387,7 +388,15 @@ const InventoryForm = (props: {
                     }
                     value={inventoryId ?? ''}
                     onChange={(e) => {
-                      router.push(`/inventory/${e.target.value}`);
+
+                      let currentParams = document.location.href.split("?").slice(-1)[0];
+                      if (currentParams.includes('http')) currentParams = ""
+
+                      const params = new URLSearchParams(currentParams)
+                      params.set('inventory', e.target.value)
+                      const newRoute = `${pathname}?${params.toString()}`
+
+                      router.push(newRoute);
                     }}
                   >
                     {filteredInventory?.map((inventory, n) => {

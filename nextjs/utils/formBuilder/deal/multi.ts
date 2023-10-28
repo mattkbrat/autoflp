@@ -70,7 +70,7 @@ async function generateMultipleDealForms({
         result = await generateSecurity({ fullDeal, output: formName });
         break;
       default:
-        console.log('Form not found', form);
+        console.warn('Form not found', form);
         break;
     }
 

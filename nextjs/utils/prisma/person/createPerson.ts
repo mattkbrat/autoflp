@@ -4,8 +4,6 @@ import { Person } from '@prisma/client';
 import { randomUUID } from 'crypto';
 
 const createPerson = async (data: Person) => {
-  console.log('createPerson', data);
-
   return prisma.$transaction(async (tx) => {
     const person = await tx.person.create({
       data: {

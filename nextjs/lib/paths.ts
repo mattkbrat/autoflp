@@ -5,8 +5,6 @@ const envFormsDirectory = process.env.FORMS_DIRECTORY;
 
 console.log('appDirectory', appDirectory);
 
-import isDev from '@/lib/isDev';
-
 export const rootPath = process.cwd();
 
 console.log('rootPath', rootPath);

@@ -6,7 +6,6 @@ import { sessionOptions } from '@/lib/auth/sessionOptions';
 
 function logoutHandler(req: NextApiRequest, res: NextApiResponse) {
   req.session?.destroy();
-  console.log('req.session', req.session);
   res.status(200).json({ message: 'Logged out', user: null });
 }
 

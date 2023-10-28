@@ -124,8 +124,6 @@ function AmortizationSchedule({
     defaultSchedule: dSchedule,
   });
 
-  console.log(schedule);
-
   const [withZeroPayments, setWithZeroPayments] = useState<boolean>(false);
 
   const defaultSchedule = dSchedule;
@@ -141,24 +139,24 @@ function AmortizationSchedule({
       const element = document.getElementById('print-button');
 
       if (!schedule) {
-        console.log('No schedule to print');
+        console.warn('No schedule to print');
         return;
       }
 
       if (schedule.hasHistory) {
         while (!document.getElementById('history-header')) {
           setTimeout(() => {
-            console.log('Waiting for history header');
+            console.info('Waiting for history header');
           }, 100);
         }
       } else {
-        console.log('No history to wait for', schedule);
+        console.info('No history to wait for', schedule);
       }
 
       if (element) {
         element.click();
       } else {
-        console.log('No print button');
+        console.error('No print button on amortization schedule');
       }
     }
   }, [defaultPrint, schedule]);
@@ -170,7 +168,6 @@ function AmortizationSchedule({
     }
 
     if (!schedule?.hasHistory) {
-      console.log('No history', document.readyState);
       setLoading(false);
       return <></>;
     }
