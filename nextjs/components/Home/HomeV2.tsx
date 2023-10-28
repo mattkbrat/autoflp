@@ -1,18 +1,13 @@
 'use client';
 
-import InventoryPage from '@/app/inventory/InventoryPage';
 import useInventory from '@/hooks/useInventory';
 import { Skeleton, Tab, TabList, TabPanel, TabPanels, Tabs } from '@chakra-ui/react';
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import InventoryForm from '../forms/InventoryForm';
-import { InventoryWithDeals } from '@/types/prisma/inventory';
 import InventoryCard from '../display/InventoryCard';
 import { DealForm } from '../forms/DealForm';
-import { BusinessData } from '@/types/BusinessData';
 import AccountTable from '../table/AccountTable';
-import { AccountsWithRelevant } from '@/types/prisma/accounts';
 import CreditAppsPage from '@/app/applications/ApplicationPage';
-import { CreditApplication } from '@/types/CreditApplication';
 import HomeV2Props from '@/types/pages/HomeV2';
 
 const HomeV2 = ({

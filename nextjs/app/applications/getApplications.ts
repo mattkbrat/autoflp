@@ -1,5 +1,4 @@
 import spreadsheet from '@/lib/google/spreadsheet';
-import Link from 'next/link';
 import { CreditApplication } from '@/types/CreditApplication';
 import { camelCase } from 'lodash';
 import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
@@ -12,18 +11,6 @@ const getApplications = async () => {
   }
 
   const applications: CreditApplication[] = [];
-
-  const replaceGoogleDriveUrlWithImageLink = (url: string) => {
-    // https://drive.google.com/open?id=1ttTdvjZAnFMfPJzDvfEFoLNbLGyHebCX -->
-    //   https://drive.google.com/uc?export=view&id=XXX
-
-    if (!url) {
-      return '';
-    }
-
-    const id = url.split('id=')[1];
-    return `https://drive.google.com/uc?export=view&id=${id}`;
-  };
 
   // My document contains duplicate headers, so I'm going to use the raw data
   // Updating the cells would interrupt the form submissions and create new columns,

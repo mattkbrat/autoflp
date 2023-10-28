@@ -1,16 +1,8 @@
-import spreadsheet from '@/lib/google/spreadsheet';
-import { camelCase } from 'lodash';
-import { type CreditApplication } from '@/types/CreditApplication';
-import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { getRequestCookie } from '@/utils/auth/getRequestCookie';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import getApplications from '@/app/applications/getApplications';
-// import CreditAppsPage from '@/app/applications/ApplicationPage';
-type Range = string[][];
-
 const CreditAppPage = dynamic(() => import('@/app/applications/ApplicationPage'), {
   ssr: false,
 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo } from 'react';
 import { Stack, Tab, TabList, TabPanel, TabPanels, Tabs } from '@chakra-ui/react';
 import ManageAccountsTable from '@/app/accounts/ManageAccountsTable';
 import PersonForm from '@/components/forms/PersonForm';

@@ -4,7 +4,6 @@ import { Button, Flex, Heading, Link, Stack } from '@chakra-ui/react';
 import { type CreditApplication } from '@/types/CreditApplication';
 import { memo, useMemo, useState } from 'react';
 import ComboBox from '@/components/ComboBox';
-import { fullNameFromPerson } from '@/utils/format/fullNameFromPerson';
 import { addressFromPerson } from '@/utils/format/addressFromPerson';
 import financeFormat from '@/utils/finance/format';
 import StackLayout from '@/components/StackLayout';

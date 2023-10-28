@@ -1,16 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getRequestCookie } from '@/utils/auth/getRequestCookie';
 import { cookies } from 'next/headers';
-import HomePage from '@/app/HomePage';
 
 import dynamic from 'next/dynamic';
-import { InventoryWithDeals } from '@/types/prisma/inventory';
 import { getInventoryWithDeals } from '@/utils/prisma/inventory';
 import { getBusinessData } from '@/utils/formBuilder/functions';
 import { getAccountsWithRelevant } from '@/utils/prisma/account';
-import { AccountsWithRelevant } from '@/types/prisma/accounts';
 import getApplications from '@/app/applications/getApplications';
-import HomeV2Props from '@/types/pages/HomeV2';
 
 const HomeV2 = dynamic(() => import('@/components/Home/HomeV2'), {
   ssr: false,
