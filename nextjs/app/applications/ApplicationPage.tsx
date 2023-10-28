@@ -10,7 +10,7 @@ import financeFormat from '@/utils/finance/format';
 import StackLayout from '@/components/StackLayout';
 
 const CreditAppsPage = ({ apps }: { apps: CreditApplication[] }) => {
-  const [selectedName, setSelectedName] = useState(apps[0].key);
+  const [selectedName, setSelectedName] = useState(apps[apps.length - 1].key);
 
   const selected = useMemo(() => {
     if (!selectedName) {

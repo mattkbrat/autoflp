@@ -9,29 +9,45 @@ import { getInventoryWithDeals } from '@/utils/prisma/inventory';
 import { getBusinessData } from '@/utils/formBuilder/functions';
 import { getAccountsWithRelevant } from '@/utils/prisma/account';
 import { AccountsWithRelevant } from '@/types/prisma/accounts';
+import getApplications from '@/app/applications/getApplications';
+import HomeV2Props from '@/types/pages/HomeV2';
 
 const HomeV2 = dynamic(() => import('@/components/Home/HomeV2'), {
-  ssr: false
-})
+  ssr: false,
+});
 
-const Page = async ({searchParams, ...props}) => {
+const Page = async ({ searchParams }: { searchParams: { inventory: string } }) => {
   const user = await getRequestCookie(cookies());
 
-  let inventory: InventoryWithDeals | null = null;
+  const businessData = getBusinessData();
 
-  if (searchParams.inventory) {
-    inventory = await getInventoryWithDeals({ inventoryId: searchParams.inventory });
-  }
+  const getInventory = async () => {
+    if (!searchParams.inventory) {
+      return null;
+    }
+
+    return await getInventoryWithDeals({ inventoryId: searchParams.inventory });
+  };
 
   if (!user) {
     redirect('/auth/login');
   }
 
-  const businessData = getBusinessData();
-  
-  const accounts: AccountsWithRelevant = await getAccountsWithRelevant();
+  const [inventory, accounts, applications] = await Promise.all([
+    await getInventory(),
+    await getAccountsWithRelevant(),
+    await getApplications(),
+  ]);
 
-  return <HomeV2 businessData={businessData} accounts={accounts} selectedInventory={inventory} />;
+  return (
+    <HomeV2
+      businessData={businessData}
+      // @ts-ignore
+      accounts={accounts}
+      selectedInventory={inventory}
+      applications={applications}
+    />
+  );
 };
 
 export default Page;

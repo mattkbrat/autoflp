@@ -11,16 +11,16 @@ import { DealForm } from '../forms/DealForm';
 import { BusinessData } from '@/types/BusinessData';
 import AccountTable from '../table/AccountTable';
 import { AccountsWithRelevant } from '@/types/prisma/accounts';
+import CreditAppsPage from '@/app/applications/ApplicationPage';
+import { CreditApplication } from '@/types/CreditApplication';
+import HomeV2Props from '@/types/pages/HomeV2';
 
 const HomeV2 = ({
   selectedInventory,
   businessData,
   accounts,
-}: {
-  selectedInventory?: InventoryWithDeals | null;
-  businessData: BusinessData;
-  accounts: AccountsWithRelevant
-}) => {
+  applications,
+}: HomeV2Props) => {
   const { inventory } = useInventory();
 
   return (
@@ -29,10 +29,11 @@ const HomeV2 = ({
         <Tab>Accounts</Tab>
         <Tab>Inventory</Tab>
         <Tab>Deal</Tab>
+        <Tab>Credit Applications</Tab>
       </TabList>
       <TabPanels>
         <TabPanel>
-          <AccountTable data={accounts}/>
+          <AccountTable data={accounts} />
         </TabPanel>
         <TabPanel>
           <Skeleton isLoaded={!!inventory}>
@@ -48,7 +49,14 @@ const HomeV2 = ({
           </Skeleton>
         </TabPanel>
         <TabPanel>
-          <DealForm id={""} businessData={businessData}/>
+          <DealForm id={''} businessData={businessData} />
+        </TabPanel>
+        <TabPanel>
+          {applications ? (
+            <CreditAppsPage apps={applications} />
+          ) : (
+            <p>Could not load applications</p>
+          )}
         </TabPanel>
       </TabPanels>
     </Tabs>
