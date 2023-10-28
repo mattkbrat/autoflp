@@ -7,7 +7,7 @@ import PersonForm from '@/components/forms/PersonForm';
 import { AccountsWithRelevant } from '@/types/prisma/accounts';
 
 async function AccountPage(props: { data?: AccountsWithRelevant[number][] }) {
-  const data = props.data || null;
+  const data = props?.data || null;
 
   return (
     <Stack>
